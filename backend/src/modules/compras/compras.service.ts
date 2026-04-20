@@ -1,6 +1,7 @@
 import pool from '@/lib/db'
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '@/lib/errors'
 import { sendPurchaseConfirmationEmail, sendTransferenciaPendienteEmail } from '@/lib/mail'
+import { emitirFactura } from '@/lib/contifico'
 import { findSorteoById } from '../sorteos/sorteos.repository'
 import {
   upsertComprador,
@@ -206,7 +207,30 @@ export async function validarCompra(compraId: string, data: ValidarCompraDto, ad
         )
       }
 
-      const compraActualizada = await actualizarEstadoCompra(compraId, 'VALIDADO', adminId, client)
+      // Emitir factura en Contifico antes de confirmar
+      let contificoResult: { documento_id: string; autorizacion: string; numero_doc: string } | undefined
+      try {
+        const factura = await emitirFactura({
+          cedula: compra.cedula,
+          nombre: compra.comprador_nombre,
+          telefono: compra.telefono,
+          email: compra.email,
+          direccion: compra.direccion,
+          cantidadBoletos: compra.total_boletos,
+          sorteoNombre: sorteo.nombre,
+          compraId,
+        })
+        contificoResult = {
+          documento_id: factura.documento_id,
+          autorizacion: factura.autorizacion,
+          numero_doc: factura.numero_documento,
+        }
+      } catch (contificoError) {
+        console.error('No se pudo emitir la factura en Contifico:', contificoError)
+        // No bloqueamos el flujo; se registra el error y se continúa
+      }
+
+      const compraActualizada = await actualizarEstadoCompra(compraId, 'VALIDADO', adminId, client, contificoResult)
       const boletos = await insertarBoletos(compra.sorteo_id, compraId, numerosAsignados, client)
 
       await client.query('COMMIT')
@@ -227,7 +251,7 @@ export async function validarCompra(compraId: string, data: ValidarCompraDto, ad
         console.error('Compra validada, pero no se pudo enviar el correo con boletos:', emailError)
       }
 
-      return { compra: compraActualizada, boletos, rechazado: false }
+      return { compra: compraActualizada, boletos, rechazado: false, factura: contificoResult }
     } catch (e: unknown) {
       await client.query('ROLLBACK')
       const isUniqueViolation =

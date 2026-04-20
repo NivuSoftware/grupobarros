@@ -87,6 +87,7 @@ export interface Compra {
   id: string;
   sorteo_id: string;
   total_boletos: number;
+  monto?: number | string | null;
   creado_en: string;
   comprador_nombre: string;
   cedula: string;
@@ -104,6 +105,7 @@ export interface CompraCreada {
     sorteo_id: string;
     comprador_id: string;
     total_boletos: number;
+    monto?: number | string | null;
     metodo_pago: MetodoPago;
     estado_pago: EstadoPago;
     comprobante_url?: string;
@@ -140,6 +142,7 @@ export interface CompraPendiente {
   telefono: string;
   email: string;
   total_boletos: number;
+  monto?: number | string | null;
   metodo_pago: MetodoPago;
   estado_pago: EstadoPago;
   comprobante_url?: string;
@@ -278,6 +281,7 @@ export const comprasApi = {
       cedula: string;
       telefono: string;
       email: string;
+      direccion?: string;
     };
     metodoPago?: MetodoPago;
     comprobanteUrl?: string;

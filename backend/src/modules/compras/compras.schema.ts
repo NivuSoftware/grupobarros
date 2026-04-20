@@ -5,6 +5,7 @@ export const CompradorSchema = z.object({
   cedula: z.string().regex(/^\d{10}$/, 'La cédula debe tener exactamente 10 dígitos'),
   telefono: z.string().regex(/^(\+593|0)\d{9}$/, 'Teléfono inválido (formato: 0999999999 o +593999999999)'),
   email: z.string().email('Email inválido'),
+  direccion: z.string().min(5).max(300).optional(),
 })
 
 export const CompraSchema = z.object({

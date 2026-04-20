@@ -6,6 +6,7 @@ import {
   CreditCard,
   ImageIcon,
   Mail,
+  MapPin,
   Phone,
   ReceiptText,
   ShieldCheck,
@@ -31,6 +32,7 @@ const emptyForm = {
   cedula: "",
   telefono: "",
   email: "",
+  direccion: "",
 };
 
 type MetodoPago = "TARJETA" | "TRANSFERENCIA";
@@ -149,6 +151,7 @@ const Checkout = () => {
           cedula: form.cedula.trim(),
           telefono: form.telefono.trim(),
           email: form.email.trim(),
+          direccion: form.direccion.trim() || undefined,
         },
         metodoPago,
         comprobanteUrl,
@@ -301,6 +304,16 @@ const Checkout = () => {
                       className="checkout-input"
                       placeholder="correo@dominio.com"
                       autoComplete="email"
+                    />
+                  </Field>
+
+                  <Field label="Dirección" icon={<MapPin className="h-4 w-4" />}>
+                    <input
+                      value={form.direccion}
+                      onChange={(event) => updateField("direccion", event.target.value)}
+                      className="checkout-input"
+                      placeholder="Tu dirección (para la factura)"
+                      autoComplete="street-address"
                     />
                   </Field>
                 </div>

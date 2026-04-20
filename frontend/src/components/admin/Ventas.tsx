@@ -5,6 +5,12 @@ import { getErrorMessage, notifyError, notifySuccess } from "@/lib/alerts";
 import { sorteoApi, comprasApi, type Sorteo, type Boleto, type Compra, type CompraPendiente, type ReporteVentas } from "@/lib/api";
 
 const formatMoney = (value: number) => `$${value.toLocaleString("es-EC", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const FALLBACK_TICKET_PRICE = 2;
+
+function getCompraMonto(compra: { monto?: number | string | null; total_boletos: number }) {
+  const monto = Number(compra.monto);
+  return Number.isFinite(monto) && monto > 0 ? monto : compra.total_boletos * FALLBACK_TICKET_PRICE;
+}
 
 export default function Ventas() {
   const [sorteoActivo, setSorteoActivo] = useState<Sorteo | null>(null);
@@ -278,6 +284,7 @@ function CompraPendienteCard({
         </div>
         <div className="flex items-center gap-3 shrink-0 ml-3">
           <span className="text-xs text-primary font-semibold">{compra.total_boletos} boletos</span>
+          <span className="text-xs text-foreground font-semibold">{formatMoney(getCompraMonto(compra))}</span>
           <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-xs font-semibold text-amber-300">PENDIENTE</span>
         </div>
       </button>
@@ -289,6 +296,7 @@ function CompraPendienteCard({
             <p>Recibido: {new Date(compra.creado_en).toLocaleString("es-EC")}</p>
             <p>Sorteo: {compra.sorteo_nombre}</p>
             <p>Boletos solicitados: <strong className="text-foreground">{compra.total_boletos}</strong></p>
+            <p>Monto pagado: <strong className="text-foreground">{formatMoney(getCompraMonto(compra))}</strong></p>
           </div>
 
           {/* Comprobante */}
@@ -369,7 +377,10 @@ function CompraCard({ compra }: { compra: Compra }) {
           <span className="font-semibold">{compra.comprador_nombre}</span>
           <span className="ml-3 text-muted-foreground text-xs">{compra.cedula} · {compra.telefono}</span>
         </div>
-        <span className="text-xs text-primary font-semibold">{compra.total_boletos} boletos</span>
+        <div className="flex shrink-0 items-center gap-3">
+          <span className="text-xs text-primary font-semibold">{compra.total_boletos} boletos</span>
+          <span className="text-xs text-foreground font-semibold">{formatMoney(getCompraMonto(compra))}</span>
+        </div>
       </button>
       {open && (
         <div className="border-t border-primary/20 px-4 py-3">

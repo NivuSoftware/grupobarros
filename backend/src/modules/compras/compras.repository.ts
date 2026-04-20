@@ -4,18 +4,23 @@ import type { CompradorDto } from './compras.schema'
 
 const PRECIO_BOLETO = 2
 
+function calcularMontoCompra(totalBoletos: number) {
+  return Number((totalBoletos * PRECIO_BOLETO).toFixed(2))
+}
+
 // ─── Compradores ────────────────────────────────────────────────────────────
 
 export async function upsertComprador(data: CompradorDto, client: PoolClient) {
   const { rows } = await client.query(
-    `INSERT INTO compradores (cedula, nombre, telefono, email)
-     VALUES ($1, $2, $3, $4)
+    `INSERT INTO compradores (cedula, nombre, telefono, email, direccion)
+     VALUES ($1, $2, $3, $4, $5)
      ON CONFLICT (cedula) DO UPDATE
        SET nombre = EXCLUDED.nombre,
            telefono = EXCLUDED.telefono,
-           email = EXCLUDED.email
+           email = EXCLUDED.email,
+           direccion = COALESCE(EXCLUDED.direccion, compradores.direccion)
      RETURNING *`,
-    [data.cedula, data.nombre, data.telefono, data.email],
+    [data.cedula, data.nombre, data.telefono, data.email, data.direccion ?? null],
   )
   return rows[0]
 }
@@ -31,10 +36,11 @@ export async function createCompra(
   comprobanteUrl?: string,
 ) {
   const estadoPago = metodoPago === 'TRANSFERENCIA' ? 'PENDIENTE' : 'VALIDADO'
+  const monto = calcularMontoCompra(totalBoletos)
   const { rows } = await client.query(
-    `INSERT INTO compras (sorteo_id, comprador_id, total_boletos, metodo_pago, estado_pago, comprobante_url)
-     VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-    [sorteoId, compradorId, totalBoletos, metodoPago, estadoPago, comprobanteUrl ?? null],
+    `INSERT INTO compras (sorteo_id, comprador_id, total_boletos, monto, metodo_pago, estado_pago, comprobante_url)
+     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+    [sorteoId, compradorId, totalBoletos, monto, metodoPago, estadoPago, comprobanteUrl ?? null],
   )
   return rows[0]
 }
@@ -110,7 +116,7 @@ export async function insertarBoletos(
 
 export async function findCompraById(id: string) {
   const { rows } = await pool.query(
-    `SELECT c.*, comp.nombre AS comprador_nombre, comp.cedula, comp.telefono, comp.email,
+    `SELECT c.*, comp.nombre AS comprador_nombre, comp.cedula, comp.telefono, comp.email, comp.direccion,
             COALESCE(
               json_agg(
                 json_build_object(
@@ -126,7 +132,7 @@ export async function findCompraById(id: string) {
      JOIN compradores comp ON comp.id = c.comprador_id
      LEFT JOIN boletos b ON b.compra_id = c.id
      WHERE c.id = $1
-     GROUP BY c.id, comp.nombre, comp.cedula, comp.telefono, comp.email`,
+     GROUP BY c.id, comp.nombre, comp.cedula, comp.telefono, comp.email, comp.direccion`,
     [id],
   )
   return rows[0] ?? null
@@ -166,7 +172,7 @@ export async function getReporteVentas() {
     `SELECT
        COUNT(*) FILTER (WHERE c.estado_pago <> 'RECHAZADO')::int AS ventas_realizadas,
        COALESCE(SUM(c.total_boletos) FILTER (WHERE c.estado_pago <> 'RECHAZADO'), 0)::int AS boletos_vendidos,
-       COALESCE(SUM(c.total_boletos * $1) FILTER (WHERE c.estado_pago <> 'RECHAZADO'), 0)::numeric AS dinero_esperado,
+       COALESCE(SUM(COALESCE(c.monto, c.total_boletos * $1)) FILTER (WHERE c.estado_pago <> 'RECHAZADO'), 0)::numeric AS dinero_esperado,
        COUNT(*) FILTER (WHERE c.metodo_pago = 'TRANSFERENCIA' AND c.estado_pago <> 'RECHAZADO')::int AS ventas_transferencia,
        COUNT(*) FILTER (WHERE c.metodo_pago = 'TARJETA' AND c.estado_pago <> 'RECHAZADO')::int AS ventas_tarjeta,
        COUNT(*) FILTER (WHERE c.estado_pago = 'PENDIENTE')::int AS ventas_pendientes,
@@ -193,13 +199,19 @@ export async function actualizarEstadoCompra(
   accion: 'VALIDADO' | 'RECHAZADO',
   validadoPor: string,
   client: PoolClient,
+  contifico?: { documento_id: string; autorizacion: string; numero_doc: string },
 ) {
   const { rows } = await client.query(
     `UPDATE compras
-     SET estado_pago = $2, validado_en = NOW(), validado_por = $3
+     SET estado_pago = $2,
+         validado_en = NOW(),
+         validado_por = $3,
+         contifico_documento_id = COALESCE($4, contifico_documento_id),
+         contifico_autorizacion = COALESCE($5, contifico_autorizacion),
+         contifico_numero_doc = COALESCE($6, contifico_numero_doc)
      WHERE id = $1
      RETURNING *`,
-    [id, accion, validadoPor],
+    [id, accion, validadoPor, contifico?.documento_id ?? null, contifico?.autorizacion ?? null, contifico?.numero_doc ?? null],
   )
   return rows[0] ?? null
 }

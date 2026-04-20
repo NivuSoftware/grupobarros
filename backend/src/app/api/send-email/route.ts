@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import nodemailer from "nodemailer";
+import { sendMail } from "@/lib/mail";
 
-const EMAIL_ADDRESS = process.env.EMAIL_ADDRESS!;
-const EMAIL_PASSWORD = process.env.EMAIL_PASSWORD!;
-const SMTP_SERVER = process.env.SMTP_SERVER || "smtp.gmail.com";
-const SMTP_PORT = Number(process.env.SMTP_PORT) || 587;
-const MAIL_SENDER = process.env.MAIL_SENDER || EMAIL_ADDRESS;
 const MAIL_RECIPIENT = process.env.MAIL_RECIPIENT || "haylandsebastian5@gmail.com";
 
 export async function OPTIONS() {
@@ -24,15 +19,7 @@ export async function POST(req: NextRequest) {
     const empresaNombre = empresa || "No especificada";
     const currentYear = new Date().getFullYear();
 
-    const transporter = nodemailer.createTransport({
-      host: SMTP_SERVER,
-      port: SMTP_PORT,
-      secure: false,
-      auth: { user: EMAIL_ADDRESS, pass: EMAIL_PASSWORD },
-    });
-
-    await transporter.sendMail({
-      from: MAIL_SENDER,
+    await sendMail({
       to: MAIL_RECIPIENT,
       subject: `Nueva consulta web - ${nombre}`,
       text: `Nueva consulta recibida (EFICORP ACCOUNTING)\n\nNombre: ${nombre}\nEmpresa: ${empresaNombre}\nTelefono: ${telefono}\nEmail: ${email}\nMensaje: ${mensaje}`,

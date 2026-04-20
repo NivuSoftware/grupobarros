@@ -1,5 +1,6 @@
 import { Logo } from "../Logo";
-import { Instagram, Facebook, MessageCircle, Mail, Shield, FileText } from "lucide-react";
+import { Instagram, Facebook, Mail, Shield } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export const Footer = () => {
   return (
@@ -13,7 +14,7 @@ export const Footer = () => {
             </p>
             <div className="flex justify-center gap-3 mt-6">
               {[
-                { icon: MessageCircle, label: "WhatsApp" },
+                // { icon: MessageCircle, label: "WhatsApp" },
                 { icon: Instagram, label: "Instagram" },
                 { icon: Facebook, label: "Facebook" },
                 { icon: Mail, label: "Email" },
@@ -33,10 +34,11 @@ export const Footer = () => {
           <div>
             <h4 className="font-display text-lg font-semibold mb-4 text-gold-gradient">Enlaces</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><a href="#premios" className="hover:text-primary transition-colors">Premios</a></li>
-              <li><a href="#packs" className="hover:text-primary transition-colors">Packs</a></li>
-              <li><a href="#ganadores" className="hover:text-primary transition-colors">Ganadores</a></li>
-              <li><a href="#como-funciona" className="hover:text-primary transition-colors">Cómo funciona</a></li>
+              <li><a href="/#premios" className="hover:text-primary transition-colors">Premios</a></li>
+              <li><a href="/#packs" className="hover:text-primary transition-colors">Packs</a></li>
+              <li><a href="/#ganadores" className="hover:text-primary transition-colors">Ganadores</a></li>
+              <li><a href="/#como-funciona" className="hover:text-primary transition-colors">Cómo funciona</a></li>
+              <li><Link to="/terminos-y-condiciones" className="hover:text-primary transition-colors">Términos y Condiciones</Link></li>
             </ul>
           </div>
         </div>

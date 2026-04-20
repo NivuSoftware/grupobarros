@@ -6,41 +6,69 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <!-- Título y metadatos principales -->
-  <title> Grupo Barrro </title>
+  <title>Grupo Barros | Próximamente</title>
   <meta name="description"
-    content="Servicios legales en Ecuador. Asesoría jurídica especializada en derecho laboral, civil y tributario." />
+    content="Grupo Barros prepara una nueva experiencia digital. Muy pronto podrás conocer nuestras novedades y contactarnos directamente." />
   <meta name="keywords"
-    content="servicios legales Ecuador, asesoría jurídica, derecho laboral, derecho civil, derecho tributario, abogados Quito" />
-  <meta name="author" content="Law Strategy" />
+    content="Grupo Barros, Grupo Barros Ecuador, próximamente, nueva experiencia digital, contacto Grupo Barros" />
+  <meta name="author" content="Grupo Barros" />
 
   <!-- Indexación -->
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
 
   <!-- Favicon -->
-  <link rel="icon" href="/images/icon.png" type="image/jpeg" />
+  <link rel="icon" href="/images/icon.png" type="image/png" />
   <link rel="apple-touch-icon" href="/images/icon.png" />
-  <meta name="theme-color" content="#0a8187" />
+  <meta name="theme-color" content="#0a0a0a" />
 
   <!-- Open Graph -->
-  <meta property="og:site_name" content="Law Strategy" />
+  <meta property="og:site_name" content="Grupo Barros" />
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="Law Strategy | Servicios Legales en Ecuador" />
+  <meta property="og:title" content="Grupo Barros | Próximamente" />
   <meta property="og:description"
-    content="Servicios legales en Ecuador. Asesoría jurídica especializada en derecho laboral, civil y tributario." />
+    content="Estamos preparando una nueva experiencia para ti. Muy pronto podrás conocer más de Grupo Barros." />
   <meta property="og:image" content="/images/logo.png" />
   <meta property="og:locale" content="es_EC" />
 
   <!-- Twitter Cards -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Law Strategy | Servicios Legales en Ecuador" />
+  <meta name="twitter:title" content="Grupo Barros | Próximamente" />
   <meta name="twitter:description"
-    content="Servicios legales en Ecuador. Asesoría jurídica especializada en derecho laboral, civil y tributario." />
+    content="Estamos preparando una nueva experiencia para ti. Muy pronto podrás conocer más de Grupo Barros." />
   <meta name="twitter:image" content="/images/logo.png" />
 
   <!-- Imagen principal pre-cargada -->
   <link rel="preload" as="image" href="/images/logo.png" />
 
+  <script>
+    (() => {
+      const hiddenPaths = ["/admin", "/login", "/compra-confirmada"];
+      const shouldHideWhatsappFab = () =>
+        hiddenPaths.some((path) => window.location.pathname === path || window.location.pathname.startsWith(`${path}/`));
+      const syncWhatsappFab = () => {
+        document.documentElement.classList.toggle("hide-whatsapp-fab", shouldHideWhatsappFab());
+      };
+      const patchHistory = (method) => {
+        const original = window.history[method];
+        window.history[method] = function () {
+          const result = original.apply(this, arguments);
+          syncWhatsappFab();
+          return result;
+        };
+      };
+
+      syncWhatsappFab();
+      patchHistory("pushState");
+      patchHistory("replaceState");
+      window.addEventListener("popstate", syncWhatsappFab);
+    })();
+  </script>
+
   <style>
+    .hide-whatsapp-fab .whatsapp-fab {
+      display: none;
+    }
+
     .whatsapp-fab {
       position: fixed;
       right: 20px;
@@ -74,14 +102,28 @@
       height: 28px;
       display: block;
     }
+
+    @media (max-width: 639px) {
+      .sticky-buy-visible .whatsapp-fab {
+        right: 14px;
+        bottom: 92px;
+        width: 52px;
+        height: 52px;
+      }
+
+      .sticky-buy-visible .whatsapp-fab img {
+        width: 26px;
+        height: 26px;
+      }
+    }
   </style>
 
-  <script type="module" src="/src/main.jsx"></script>
+  <script type="module" src="/src/main.tsx"></script>
 </head>
 
 <body>
   <div id="root"></div>
-  <a class="whatsapp-fab" href="https://wa.me/593982693881?text=Hola%20quiero%20comprar%20un%20producto" target="_blank" rel="noopener noreferrer"
+  <a class="whatsapp-fab" href="https://wa.me/593982693881?text=Hola%20Grupo%20Barros%2C%20quiero%20recibir%20m%C3%A1s%20informaci%C3%B3n" target="_blank" rel="noopener noreferrer"
     aria-label="Contactar por WhatsApp">
     <img
       src="data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg' fill='white' viewBox='0 0 16 16'%3e%3cpath d='M13.601 2.326A7.85 7.85 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.9 7.9 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.9 7.9 0 0 0 13.6 2.326zM7.994 14.521a6.6 6.6 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.56 6.56 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592m3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.73.73 0 0 0-.529.247c-.182.198-.691.677-.691 1.654s.71 1.916.81 2.049c.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232'/%3e%3c/svg%3e"

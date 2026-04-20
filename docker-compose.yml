@@ -19,6 +19,16 @@ services:
       timeout: 5s
       retries: 5
 
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    container_name: barros-mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    networks:
+      - barros-network
+
   backend:
     build:
       context: ./backend
@@ -39,9 +49,16 @@ services:
       - DB_USER=postgres
       - DB_PASSWORD=postgres
       - FRONTEND_URL=http://localhost:5173
+      - JWT_SECRET=cambia_esto_por_un_secreto_de_32_caracteres_o_mas
+      - JWT_ISSUER=grupobarros-api
+      - JWT_AUDIENCE=grupobarros-frontend
+      - ACCESS_TOKEN_TTL_SECONDS=900
+      - REFRESH_TOKEN_TTL_SECONDS=604800
     env_file:
       - ./backend/.env
     depends_on:
+      mailhog:
+        condition: service_started
       postgres:
         condition: service_healthy
     networks:

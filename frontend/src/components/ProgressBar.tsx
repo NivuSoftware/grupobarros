@@ -4,10 +4,12 @@ import { cn } from "@/lib/utils";
 interface ProgressBarProps {
   value: number; // 0-100
   className?: string;
+  barClassName?: string;
+  labelClassName?: string;
   label?: string;
 }
 
-export const ProgressBar = ({ value, className, label }: ProgressBarProps) => {
+export const ProgressBar = ({ value, className, barClassName, labelClassName, label }: ProgressBarProps) => {
   const [width, setWidth] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -31,12 +33,12 @@ export const ProgressBar = ({ value, className, label }: ProgressBarProps) => {
   return (
     <div ref={ref} className={cn("w-full", className)}>
       {label && (
-        <div className="flex justify-center gap-4 mb-2 text-sm text-center">
+        <div className={cn("flex justify-center gap-4 mb-2 text-sm text-center", labelClassName)}>
           <span className="text-muted-foreground tracking-wide">{label}</span>
           <span className="text-primary font-semibold tabular-nums">{value}%</span>
         </div>
       )}
-      <div className="h-2 w-full rounded-full bg-secondary overflow-hidden relative">
+      <div className={cn("h-2 w-full rounded-full bg-secondary overflow-hidden relative", barClassName)}>
         <div
           className="h-full rounded-full bg-gold-gradient relative transition-[width] duration-[2000ms] ease-out"
           style={{ width: `${width}%`, boxShadow: "0 0 20px hsl(var(--primary) / 0.6)" }}

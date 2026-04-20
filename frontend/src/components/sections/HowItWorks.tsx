@@ -4,7 +4,7 @@ import { ShoppingCart, MailCheck, Trophy, Gift } from "lucide-react";
 const steps = [
   { icon: ShoppingCart, title: "Compra tus números", desc: "Elige tu pack y paga de forma 100% segura en segundos." },
   { icon: MailCheck, title: "Confirmación inmediata", desc: "Recibe tus números al instante por correo y WhatsApp." },
-  { icon: Trophy, title: "Participa en el sorteo", desc: "Sorteos transmitidos en vivo y verificados por Lotería Nacional." },
+  { icon: Trophy, title: "Participa en el sorteo", desc: "Una vez se vena el 100% de boletos se realizara el sorteo verificando el ganador con los numeros de la loteria nacional." },
   { icon: Gift, title: "Gana premios increíbles", desc: "Camionetas, motos, dinero en efectivo y mucho más." },
 ];
 

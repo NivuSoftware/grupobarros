@@ -1,8 +1,16 @@
 import { Logo } from "./Logo";
 import { useEffect, useState } from "react";
 import { TrendingUp } from "lucide-react";
+import type { SorteoActivoData } from "@/lib/useSorteoActivo";
 
-export const Navbar = () => {
+interface NavbarProps {
+  sorteoData: SorteoActivoData | null;
+  loading: boolean;
+}
+
+const clampProgress = (value: number) => Math.min(100, Math.max(0, value));
+
+export const Navbar = ({ sorteoData, loading }: NavbarProps) => {
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 30);
@@ -10,7 +18,10 @@ export const Navbar = () => {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const progress = 84;
+  const stats = sorteoData?.stats;
+  const showProgress = !loading && sorteoData?.sorteo.estado === "ACTIVO" && !!stats;
+  const progress = stats ? clampProgress(stats.porcentajeVendido) : 0;
+  const progressLabel = progress.toLocaleString("es-EC", { maximumFractionDigits: 2 });
 
   return (
     <header
@@ -19,7 +30,7 @@ export const Navbar = () => {
       }`}
     >
       {/* Main bar */}
-      <div className={`container flex items-center justify-between transition-all ${scrolled ? "py-4" : "py-5"}`}>
+      <div className={`container flex items-center justify-center md:justify-between transition-all ${scrolled ? "py-4" : "py-5"}`}>
         <Logo />
         <nav className="hidden md:flex items-center gap-10 text-base tracking-wide text-foreground/70">
           <a href="#numeros-oro" className="hover:text-primary transition-colors">Números de Oro</a>
@@ -35,29 +46,31 @@ export const Navbar = () => {
         </a>
       </div>
 
-      {/* Sub navbar — global progress */}
-      <div className="border-t border-primary/20 bg-card/40 backdrop-blur-xl">
-        <div className="container flex items-center gap-3 sm:gap-5 py-3">
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            <TrendingUp className="w-3.5 h-3.5 text-destructive" />
-            <span className="text-[10px] sm:text-xs uppercase tracking-[0.2em] text-destructive font-bold whitespace-nowrap">
-              Avance Global
+      {/* Sub navbar — active draw progress */}
+      {showProgress && stats && (
+        <div className="border-t border-primary/20 bg-card/40 backdrop-blur-xl">
+          <div className="container flex items-center gap-4 sm:gap-6 py-4">
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <TrendingUp className="w-4 h-4 text-destructive" />
+              <span className="text-xs sm:text-sm uppercase tracking-[0.2em] text-destructive font-bold whitespace-nowrap">
+                Avance del sorteo
+              </span>
+            </div>
+            <div className="flex-1 h-3.5 rounded-full bg-secondary overflow-hidden relative">
+              <div
+                className="h-full bg-gold-gradient relative transition-all duration-700"
+                style={{ width: `${progress}%` }}
+              >
+                <div className="absolute inset-0 shimmer" />
+              </div>
+            </div>
+            <span className="text-sm sm:text-base font-bold text-gold-gradient whitespace-nowrap">{progressLabel}%</span>
+            <span className="hidden sm:inline text-xs uppercase tracking-widest text-muted-foreground whitespace-nowrap">
+              {stats.vendidos.toLocaleString("es-EC")} / {stats.totalBoletos.toLocaleString("es-EC")} vendidos
             </span>
           </div>
-          <div className="flex-1 h-2 rounded-full bg-secondary overflow-hidden relative">
-            <div
-              className="h-full bg-gold-gradient relative transition-all duration-700"
-              style={{ width: `${progress}%` }}
-            >
-              <div className="absolute inset-0 shimmer" />
-            </div>
-          </div>
-          <span className="text-xs sm:text-sm font-bold text-gold-gradient whitespace-nowrap">{progress}%</span>
-          <span className="hidden sm:inline text-[10px] uppercase tracking-widest text-muted-foreground whitespace-nowrap">
-            Se llena rápido
-          </span>
         </div>
-      </div>
+      )}
     </header>
   );
 };

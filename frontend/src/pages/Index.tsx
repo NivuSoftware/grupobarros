@@ -8,20 +8,24 @@ import { Packs } from "@/components/sections/Packs";
 import { Winners } from "@/components/sections/Winners";
 import { FinalCTA } from "@/components/sections/FinalCTA";
 import { Footer } from "@/components/sections/Footer";
+import { useSorteoActivo } from "@/lib/useSorteoActivo";
 
 const Index = () => {
+  const { data, loading } = useSorteoActivo();
+  const hasSorteo = !loading && data !== null;
+
   return (
     <main className="min-h-screen bg-background text-foreground overflow-x-hidden">
-      <Navbar />
-      <Hero />
-      <GoldNumbers />
-      <OrangeNumber />
+      <Navbar sorteoData={data} loading={loading} />
+      <Hero sorteoData={data} loading={loading} />
+      {hasSorteo && <GoldNumbers sorteoData={data} loading={loading} />}
+      {hasSorteo && <OrangeNumber sorteoData={data} loading={loading} />}
       <HowItWorks />
-      <Packs />
+      {hasSorteo && <Packs />}
       <Winners />
       <FinalCTA />
       <Footer />
-      <StickyBuy />
+      {hasSorteo && <StickyBuy />}
     </main>
   );
 };

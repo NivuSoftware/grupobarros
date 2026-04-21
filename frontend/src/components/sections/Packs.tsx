@@ -47,8 +47,15 @@ export const Packs = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-50px" }}
               transition={{ duration: 0.55, delay: i * 0.08 }}
-              className="rounded-lg border border-border bg-card p-6 text-center transition-all duration-300 hover:-translate-y-1 hover:border-primary/60"
+              className={`relative rounded-lg border border-border bg-card p-6 text-center transition-all duration-300 hover:-translate-y-1 hover:border-primary/60 ${
+                pack.numbers === 10 ? "pt-8" : ""
+              }`}
             >
+              {pack.numbers === 10 && (
+                <span className="absolute right-5 top-0 -translate-y-1/2 rounded-full bg-gold-gradient px-4 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-primary-foreground shadow-gold">
+                  (MAS VENDIDO)
+                </span>
+              )}
               <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Cantidad</p>
               <h3 className="mt-2 font-display text-4xl font-bold">x{pack.numbers} boletos</h3>
               <p className="mt-3 font-display text-5xl font-bold text-gold-gradient">{formatMoney(pack.price)}</p>

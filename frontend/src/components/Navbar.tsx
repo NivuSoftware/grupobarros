@@ -65,9 +65,6 @@ export const Navbar = ({ sorteoData, loading }: NavbarProps) => {
               </div>
             </div>
             <span className="text-sm sm:text-base font-bold text-gold-gradient whitespace-nowrap">{progressLabel}%</span>
-            <span className="hidden sm:inline text-xs uppercase tracking-widest text-muted-foreground whitespace-nowrap">
-              {stats.vendidos.toLocaleString("es-EC")} / {stats.totalBoletos.toLocaleString("es-EC")} vendidos
-            </span>
           </div>
         </div>
       )}

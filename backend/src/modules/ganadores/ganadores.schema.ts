@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 export const MarcarGanadorMayorSchema = z.object({
   boletoId: z.string().uuid('boletoId debe ser un UUID válido'),
+  boletoNumero: z.number().int().min(0, 'boletoNumero debe ser un número válido'),
 })
 
 export const MarcarGanadorEspecialSchema = z.object({

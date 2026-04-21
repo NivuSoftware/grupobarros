@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { Trophy, Star } from "lucide-react";
+import { Eye, EyeOff, Search, ShieldCheck, Trophy, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getErrorMessage, notifyError, notifySuccess } from "@/lib/alerts";
-import { sorteoApi, neApi, ganadoresApi, type Boleto, type Sorteo, type NumeroEspecial } from "@/lib/api";
+import { sorteoApi, neApi, ganadoresApi, boletoApi, type Boleto, type Sorteo, type NumeroEspecial } from "@/lib/api";
 
 type GanadorMarcadoResult = {
   boleto: Boleto;
@@ -97,8 +97,8 @@ export default function Ganadores() {
               {/* Premio Mayor */}
               <PremioMayorCard
                 sorteo={selected}
-                onGanadorMarcado={(boletoId) =>
-                  ganadoresApi.marcarMayor(selected.id, boletoId)
+                onGanadorMarcado={(payload) =>
+                  ganadoresApi.marcarMayor(selected.id, payload)
                     .then((res) => {
                       flash(res.cerradoAutomaticamente
                         ? "¡Ganador mayor marcado! El sorteo se cerró automáticamente."
@@ -157,22 +157,78 @@ function PremioMayorCard({
   onGanadorMarcado,
 }: {
   sorteo: Sorteo;
-  onGanadorMarcado: (boletoId: string) => Promise<GanadorMarcadoResult | void>;
+  onGanadorMarcado: (payload: { boletoId: string; boletoNumero: number }) => Promise<GanadorMarcadoResult | void>;
 }) {
-  const [boletoId, setBoletoId] = useState("");
+  const [numeroBoleto, setNumeroBoleto] = useState("");
+  const [uuidConfirmacion, setUuidConfirmacion] = useState("");
+  const [boletoEncontrado, setBoletoEncontrado] = useState<Boleto | null>(null);
   const [ganador, setGanador] = useState<Boleto | null>(null);
+  const [searching, setSearching] = useState(false);
   const [saving, setSaving] = useState(false);
   const ganadorMayor = ganador ?? sorteo.premio_mayor_boleto ?? null;
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  useEffect(() => {
+    setNumeroBoleto("");
+    setUuidConfirmacion("");
+    setBoletoEncontrado(null);
+    setGanador(null);
+    setSearching(false);
+    setSaving(false);
+  }, [sorteo.id]);
+
+  const handleBuscarBoleto = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!boletoId.trim()) return;
+    const numeroNormalizado = numeroBoleto.trim();
+    if (!/^\d+$/.test(numeroNormalizado)) {
+      notifyError("Ingresa un número de boleto válido.");
+      return;
+    }
+    const numero = Number(numeroNormalizado);
+
+    setSearching(true);
+    try {
+      const boleto = await boletoApi.buscarPorNumero(sorteo.id, numero);
+      if (!boleto) {
+        setBoletoEncontrado(null);
+        setUuidConfirmacion("");
+        notifyError("No se encontró un comprador para ese número de boleto.");
+        return;
+      }
+
+      setBoletoEncontrado(boleto);
+      setUuidConfirmacion("");
+      notifySuccess("Boleto encontrado. Verifica el UUID con el comprador.");
+    } catch (e: unknown) {
+      notifyError(getErrorMessage(e, "No se pudo buscar el boleto"));
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const handleDeclararGanador = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!boletoEncontrado) return;
+
+    const uuidIngresado = uuidConfirmacion.trim();
+    if (!uuidIngresado) {
+      notifyError("Ingresa el UUID entregado por el comprador.");
+      return;
+    }
+    if (uuidIngresado !== boletoEncontrado.id) {
+      notifyError("El UUID ingresado no coincide con el boleto encontrado.");
+      return;
+    }
+
     setSaving(true);
     try {
-      const result = await onGanadorMarcado(boletoId.trim());
+      const result = await onGanadorMarcado({
+        boletoId: boletoEncontrado.id,
+        boletoNumero: boletoEncontrado.numero,
+      });
       if (result?.boleto) setGanador(result.boleto);
+    } finally {
+      setSaving(false);
     }
-    finally { setSaving(false); }
   };
 
   return (
@@ -190,19 +246,64 @@ function PremioMayorCard({
           {ganadorMayor && <CompradorGanador boleto={ganadorMayor} />}
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="flex gap-3 flex-wrap">
-          <input
-            required
-            value={boletoId}
-            onChange={(e) => setBoletoId(e.target.value)}
-            placeholder="UUID del boleto ganador"
-            className="flex-1 min-w-0 rounded border border-primary/30 bg-background px-3 py-2 text-sm font-mono"
-          />
-          <Button type="submit" disabled={saving} className="gap-2">
-            <Trophy className="h-4 w-4" />
-            {saving ? "Guardando..." : "Declarar ganador"}
-          </Button>
-        </form>
+        <div className="space-y-4">
+          <form onSubmit={handleBuscarBoleto} className="space-y-3">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary/80">Paso 1</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Ingresa el número del boleto ganador para ver los datos del comprador registrado.
+              </p>
+            </div>
+
+            <div className="flex gap-3 flex-wrap">
+              <input
+                required
+                inputMode="numeric"
+                value={numeroBoleto}
+                onChange={(e) => {
+                  setNumeroBoleto(e.target.value);
+                  setBoletoEncontrado(null);
+                  setUuidConfirmacion("");
+                }}
+                placeholder="Número del boleto ganador"
+                className="flex-1 min-w-0 rounded border border-primary/30 bg-background px-3 py-2 text-sm font-mono"
+              />
+              <Button type="submit" disabled={searching} variant="outline" className="gap-2">
+                <Search className="h-4 w-4" />
+                {searching ? "Buscando..." : "Buscar boleto"}
+              </Button>
+            </div>
+          </form>
+
+          {boletoEncontrado && (
+            <>
+              <CompradorGanador boleto={boletoEncontrado} />
+
+              <form onSubmit={handleDeclararGanador} className="space-y-3 rounded-md border border-primary/20 bg-background/40 p-4">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary/80">Paso 2</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Pide al comprador el UUID de su boleto y escríbelo exactamente igual para confirmar el premio mayor.
+                  </p>
+                </div>
+
+                <div className="flex gap-3 flex-wrap">
+                  <input
+                    required
+                    value={uuidConfirmacion}
+                    onChange={(e) => setUuidConfirmacion(e.target.value)}
+                    placeholder="UUID entregado por el comprador"
+                    className="flex-1 min-w-0 rounded border border-primary/30 bg-background px-3 py-2 text-sm font-mono"
+                  />
+                  <Button type="submit" disabled={saving} className="gap-2">
+                    <ShieldCheck className="h-4 w-4" />
+                    {saving ? "Verificando..." : "Confirmar y declarar"}
+                  </Button>
+                </div>
+              </form>
+            </>
+          )}
+        </div>
       )}
     </div>
   );
@@ -309,11 +410,11 @@ function CompradorGanador({ boleto, compact = false }: { boleto: Boleto; compact
       <p className="text-xs font-bold uppercase tracking-[0.18em] text-green-400">Comprador registrado</p>
       <div className="mt-2 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
         <InfoItem label="Nombre" value={boleto.comprador_nombre} />
-        <InfoItem label="Cédula" value={boleto.cedula} />
+        <SensitiveInfoItem label="Cédula" value={boleto.cedula} />
         <InfoItem label="Correo" value={boleto.email ?? "—"} />
-        <InfoItem label="Teléfono" value={boleto.telefono ?? "—"} />
+        <SensitiveInfoItem label="Teléfono" value={boleto.telefono ?? "—"} />
         <InfoItem label="Número" value={String(boleto.numero).padStart(4, "0")} />
-        <InfoItem label="UUID boleto" value={boleto.id} mono />
+        <SensitiveInfoItem label="UUID boleto" value={boleto.id} mono />
       </div>
     </div>
   );
@@ -324,6 +425,34 @@ function InfoItem({ label, value, mono = false }: { label: string; value: string
     <div className="min-w-0">
       <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground/70">{label}</span>
       <span className={`mt-0.5 block break-all text-foreground ${mono ? "font-mono" : ""}`}>{value}</span>
+    </div>
+  );
+}
+
+function SensitiveInfoItem({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
+  const [visible, setVisible] = useState(false);
+  const safeValue = value?.trim() ? value : "—";
+  const maskedValue = safeValue === "—" ? safeValue : "*".repeat(Math.max(safeValue.length, 8));
+
+  return (
+    <div className="min-w-0">
+      <div className="flex items-center justify-between gap-2">
+        <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground/70">{label}</span>
+        {safeValue !== "—" && (
+          <button
+            type="button"
+            onClick={() => setVisible((current) => !current)}
+            className="inline-flex h-6 w-6 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:text-foreground"
+            aria-label={visible ? `Ocultar ${label}` : `Mostrar ${label}`}
+            title={visible ? `Ocultar ${label}` : `Mostrar ${label}`}
+          >
+            {visible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+          </button>
+        )}
+      </div>
+      <span className={`mt-0.5 block break-all text-foreground ${mono ? "font-mono" : ""}`}>
+        {visible ? safeValue : maskedValue}
+      </span>
     </div>
   );
 }

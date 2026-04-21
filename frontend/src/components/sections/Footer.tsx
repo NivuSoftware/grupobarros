@@ -4,52 +4,80 @@ import { Link } from "react-router-dom";
 
 export const Footer = () => {
   return (
-    <footer className="relative border-t border-border pt-20 pb-32 sm:pb-12 text-center">
+    <footer className="relative mt-24 border-t border-primary/15 bg-gradient-to-b from-background via-background to-black pt-20 text-center">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent" />
+
       <div className="container">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
-          <div className="md:col-span-2">
-            <Logo className="justify-center" />
-            <p className="mt-4 text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
-              Plataforma exclusiva de rifas premium. Sorteos transparentes, ganadores reales y experiencias de lujo accesibles para todos.
-            </p>
-            <div className="flex justify-center gap-3 mt-6">
-              {[
-                // { icon: MessageCircle, label: "WhatsApp" },
-                { icon: Instagram, label: "Instagram" },
-                { icon: Facebook, label: "Facebook" },
-                { icon: Mail, label: "Email" },
-              ].map(({ icon: Icon, label }) => (
-                <a
-                  key={label}
-                  href="#"
-                  aria-label={label}
-                  className="w-10 h-10 rounded-full bg-secondary border border-border flex items-center justify-center text-foreground/70 hover:text-primary hover:border-primary hover:shadow-gold transition-all"
-                >
-                  <Icon className="w-4 h-4" />
-                </a>
-              ))}
+        <div className="mb-14 grid grid-cols-1 gap-12 md:grid-cols-[1.4fr_0.8fr] md:items-start md:text-left">
+          <div className="relative overflow-hidden rounded-[2rem] border border-primary/15 bg-card/60 px-6 py-8 shadow-[0_0_0_1px_rgba(255,215,0,0.02),0_30px_80px_rgba(0,0,0,0.35)] sm:px-10">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,204,0,0.08),transparent_45%)]" />
+            <div className="relative">
+              <Logo className="justify-center md:justify-start" />
+              <p className="mx-auto mt-5 max-w-xl text-sm leading-relaxed text-muted-foreground md:mx-0">
+                Plataforma exclusiva de rifas premium. Sorteos transparentes, ganadores reales y experiencias de lujo
+                accesibles para todos.
+              </p>
+
+              <div className="mt-6 flex justify-center gap-3 md:justify-start">
+                {[
+                  { icon: Instagram, label: "Instagram" },
+                  { icon: Facebook, label: "Facebook" },
+                  { icon: Mail, label: "Email" },
+                ].map(({ icon: Icon, label }) => (
+                  <a
+                    key={label}
+                    href="#"
+                    aria-label={label}
+                    className="flex h-11 w-11 items-center justify-center rounded-full border border-primary/20 bg-secondary/70 text-foreground/70 transition-all hover:-translate-y-0.5 hover:border-primary hover:text-primary hover:shadow-gold"
+                  >
+                    <Icon className="h-4 w-4" />
+                  </a>
+                ))}
+              </div>
+
+              <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-background/70 px-4 py-2 text-xs uppercase tracking-[0.22em] text-primary/85">
+                <Shield className="h-3.5 w-3.5" />
+                Pagos protegidos · SSL 256-bit
+              </div>
             </div>
           </div>
 
-          <div>
-            <h4 className="font-display text-lg font-semibold mb-4 text-gold-gradient">Enlaces</h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><a href="/#premios" className="hover:text-primary transition-colors">Premios</a></li>
-              <li><a href="/#packs" className="hover:text-primary transition-colors">Packs</a></li>
-              <li><a href="/#ganadores" className="hover:text-primary transition-colors">Ganadores</a></li>
-              <li><a href="/#como-funciona" className="hover:text-primary transition-colors">Cómo funciona</a></li>
-              <li><Link to="/terminos-y-condiciones" className="hover:text-primary transition-colors">Términos y Condiciones</Link></li>
+          <div className="flex flex-col items-center rounded-[2rem] border border-primary/10 bg-card/40 px-6 py-8 md:items-start">
+            <h4 className="font-display text-lg font-semibold text-gold-gradient">Enlaces</h4>
+            <ul className="mt-5 space-y-3 text-sm text-muted-foreground">
+              <li><a href="/#premios" className="transition-colors hover:text-primary">Premios</a></li>
+              <li><a href="/#packs" className="transition-colors hover:text-primary">Packs</a></li>
+              <li><a href="/#ganadores" className="transition-colors hover:text-primary">Ganadores</a></li>
+              <li><a href="/#como-funciona" className="transition-colors hover:text-primary">Cómo funciona</a></li>
+              <li><Link to="/terminos-y-condiciones" className="transition-colors hover:text-primary">Términos y Condiciones</Link></li>
             </ul>
           </div>
         </div>
 
-        <div className="pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-center gap-4 text-xs text-muted-foreground">
-          <p>© {new Date().getFullYear()} Grupo Barros. Todos los derechos reservados.</p>
-          <div className="flex items-center gap-2">
-            <Shield className="w-4 h-4 text-primary" />
-            <span>Pagos protegidos · SSL 256-bit</span>
+        <div className="border-t border-primary/15 py-8 text-xs text-muted-foreground">
+          <div className="flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-6">
+            <p>© {new Date().getFullYear()} Grupo Barros. Todos los derechos reservados.</p>
+            <div className="hidden h-3 w-px bg-primary/20 sm:block" />
+            <span>Rifas premium con experiencia segura y transparente.</span>
           </div>
         </div>
+      </div>
+
+      <div className="border-t border-primary/15 bg-gradient-to-b from-black to-background px-4 py-5">
+        <a
+          href="https://www.nivusoftware.com"
+          target="_blank"
+          rel="noreferrer"
+          className="mx-auto flex max-w-5xl items-center justify-center gap-2 text-center text-sm font-medium text-white/65 transition-colors hover:text-white/80 sm:text-base"
+        >
+          <img
+            src="/images/logo_nube.png"
+            alt="Nube Nivusoftware"
+            className="h-4 w-4 object-contain opacity-80 sm:h-5 sm:w-5"
+          />
+          <span className="text-white/55">Desarrollado por</span>
+          <span className="font-bold tracking-tight text-white/75">Nivusoftware</span>
+        </a>
       </div>
     </footer>
   );

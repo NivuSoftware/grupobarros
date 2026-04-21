@@ -7,9 +7,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   try {
     const { id } = await params
     const body = await req.json()
-    const { boletoId } = MarcarGanadorMayorSchema.parse(body)
+    const { boletoId, boletoNumero } = MarcarGanadorMayorSchema.parse(body)
     // adminId puede venir del JWT en producción; por ahora null
-    return ok(await marcarGanadorMayor(id, boletoId, null))
+    return ok(await marcarGanadorMayor(id, boletoId, boletoNumero, null))
   } catch (e) {
     return handleError(e)
   }

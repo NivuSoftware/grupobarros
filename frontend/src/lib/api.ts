@@ -263,11 +263,16 @@ export const neApi = {
 // ─── Ganadores ────────────────────────────────────────────────────────────────
 
 export const ganadoresApi = {
-  marcarMayor: (sorteoId: string, boletoId: string) =>
+  marcarMayor: (sorteoId: string, body: { boletoId: string; boletoNumero: number }) =>
     request<{ sorteo: Sorteo; boleto: Boleto; cerradoAutomaticamente: boolean }>(
       `/api/sorteos/${sorteoId}/ganador-mayor`,
-      { method: "POST", body: JSON.stringify({ boletoId }) },
+      { method: "POST", body: JSON.stringify(body) },
     ),
+};
+
+export const boletoApi = {
+  buscarPorNumero: (sorteoId: string, numero: number) =>
+    request<Boleto | null>(`/api/boletos?sorteoId=${encodeURIComponent(sorteoId)}&numero=${numero}`),
 };
 
 // ─── Compras ──────────────────────────────────────────────────────────────────

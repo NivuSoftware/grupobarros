@@ -26,6 +26,7 @@ async function findBoleto(boletoId: string, sorteoId: string) {
 export async function marcarGanadorMayor(
   sorteoId: string,
   boletoId: string,
+  boletoNumero: number,
   adminId: string | null = null,
 ) {
   const client = await pool.connect()
@@ -43,6 +44,9 @@ export async function marcarGanadorMayor(
 
     const boleto = await findBoleto(boletoId, sorteoId)
     if (!boleto) throw new NotFoundError('Boleto (debe pertenecer al sorteo indicado)')
+    if (boleto.numero !== boletoNumero) {
+      throw new ValidationError('El UUID del boleto no coincide con el número seleccionado')
+    }
 
     const sorteoActualizado = await setPremioMayorGanador(sorteoId, boletoId, client)
 

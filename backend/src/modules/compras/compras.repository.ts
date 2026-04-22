@@ -34,8 +34,9 @@ export async function createCompra(
   client: PoolClient,
   metodoPago: 'TARJETA' | 'TRANSFERENCIA' = 'TARJETA',
   comprobanteUrl?: string,
+  estadoPagoOverride?: 'PENDIENTE' | 'VALIDADO',
 ) {
-  const estadoPago = metodoPago === 'TRANSFERENCIA' ? 'PENDIENTE' : 'VALIDADO'
+  const estadoPago = estadoPagoOverride ?? (metodoPago === 'TRANSFERENCIA' ? 'PENDIENTE' : 'VALIDADO')
   const monto = calcularMontoCompra(totalBoletos)
   const { rows } = await client.query(
     `INSERT INTO compras (sorteo_id, comprador_id, total_boletos, monto, metodo_pago, estado_pago, comprobante_url)

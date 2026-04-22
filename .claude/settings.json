@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:docs.payphone.app)",
+      "WebSearch",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"https://cdn.payphonetodoesposible.com/api/button/1.0/payphone.js\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"https://pay.payphonetodoesposible.com/api/button/payphone.js\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"https://cdn.payphonetodoesposible.com/api/button/payphone.js\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"https://pay.payphonetodoesposible.com/payphone.js\")",
+      "Bash(curl -sL -o /dev/null -w \"%{http_code} %{url_effective}\" \"https://pay.payphonetodoesposible.com/payphone.js\")",
+      "Bash(curl -sL \"https://pay.payphonetodoesposible.com/api/button/V2/Index\" -o /dev/null -w \"%{http_code}\\\\n\")",
+      "Bash(curl -sL \"https://pay.payphonetodoesposible.com/api/button/V2/Payphone.js\" -o /dev/null -w \"%{http_code}\\\\n\")",
+      "Bash(curl -sL \"https://cdn.payphonetodoesposible.com/pp-button.min.js\" -o /dev/null -w \"%{http_code}\\\\n\")",
+      "Bash(curl -sL -o /dev/null -w \"%{http_code}\" \"https://cdn.payphonetodoesposible.com/box/v1.1/payphone-payment-box.js\")",
+      "Bash(curl -sL \"https://cdn.payphonetodoesposible.com/box/v1.1/payphone-payment-box.js\")",
+      "Bash(grep -oE \"PPaymentButtonBox\\\\\\([^\\)]{0,300}\")",
+      "Bash(grep -oE \"constructor\\\\\\(\\\\{[^}]{0,400}\")",
+      "Bash(grep -oE \"clientEcommerce[^,}]{0,200}\")",
+      "Bash(grep -oE \"render\\\\\\([^\\)]{0,300}\")",
+      "Bash(grep -oE \"handleCompletedPayment[^;]{0,200}\")",
+      "Bash(grep -oE \"onCompletedPayment[^,\\)]{0,150}\")",
+      "Bash(grep -oE \"transactionId[^,;}]{0,100}\")",
+      "Bash(node_modules/.bin/tsc --noEmit)"
+    ]
+  }
+}

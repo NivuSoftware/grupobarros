@@ -309,3 +309,48 @@ export const comprasApi = {
       { method: "POST", body: JSON.stringify({ accion }) },
     ),
 };
+
+// ─── Payphone ─────────────────────────────────────────────────────────────────
+
+export interface PayphoneIniciarPayload {
+  sorteoId: string;
+  cantidadBoletos: number;
+  comprador: {
+    nombre: string;
+    cedula: string;
+    telefono: string;
+    email: string;
+    direccion?: string;
+  };
+}
+
+export interface PayphoneIniciarResult {
+  compraId: string;
+  monto: number;
+  montoEnCentavos: number;
+  storeId: string;
+  clienteNombre: string;
+  clienteEmail: string;
+}
+
+export interface PayphoneConfirmarResult {
+  yaConfirmada: boolean;
+  compraId?: string;
+  compra?: Compra;
+  boletos?: Boleto[];
+  pendiente: false;
+}
+
+export const payphoneApi = {
+  iniciar: (body: PayphoneIniciarPayload) =>
+    request<PayphoneIniciarResult>("/api/payphone", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  confirmar: (transactionId: number, clientTransactionId: string) =>
+    request<PayphoneConfirmarResult>("/api/payphone?action=confirmar", {
+      method: "POST",
+      body: JSON.stringify({ transactionId, clientTransactionId }),
+    }),
+};

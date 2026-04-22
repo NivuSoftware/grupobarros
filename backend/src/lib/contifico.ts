@@ -60,6 +60,10 @@ export interface DatosFactura {
   cantidadBoletos: number
   sorteoNombre: string
   compraId: string
+  /** Forma de cobro Contifico: 'TRA' (transferencia) | 'TC' (tarjeta crédito/débito). Default: 'TRA' */
+  formaCobro?: 'TRA' | 'TC'
+  /** Referencia del cobro (ej. transactionId de Payphone). Default: primeros 15 chars del compraId */
+  referenciaCobro?: string
 }
 
 export interface ResultadoFactura {
@@ -128,14 +132,16 @@ export async function emitirFactura(datos: DatosFactura): Promise<ResultadoFactu
   const documentoId = String(response.id ?? '')
 
   // Registrar el cobro para que la factura quede en estado cobrado
+  const formaCobro = datos.formaCobro ?? 'TRA'
+  const numeroComprobante = datos.referenciaCobro ?? datos.compraId.slice(0, 15)
   await contificoFetch(`/documento/${documentoId}/cobro/`, {
     method: 'POST',
     body: JSON.stringify({
-      forma_cobro: 'TRA',
+      forma_cobro: formaCobro,
       monto: total,
       tipo_ping: null,
-      cuenta_bancaria_id: CUENTA_BANCARIA_ID || null,
-      numero_comprobante: datos.compraId.slice(0, 15),
+      cuenta_bancaria_id: formaCobro === 'TRA' ? (CUENTA_BANCARIA_ID || null) : null,
+      numero_comprobante: numeroComprobante,
     }),
   })
 

@@ -1,4 +1,4 @@
-import { FormEvent, type ReactNode, useMemo, useRef, useState } from "react";
+import { FormEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -17,12 +17,15 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/sections/Footer";
 import { getErrorMessage, notifyError, notifySuccess } from "@/lib/alerts";
-import { comprasApi, uploadApi } from "@/lib/api";
+import { comprasApi, payphoneApi, uploadApi } from "@/lib/api";
 import { isValidEcuadorianCedula } from "@/lib/cedulaEcuatoriana";
 import { useSorteoActivo } from "@/lib/useSorteoActivo";
 
 const TICKET_PRICE = 2;
 const MIN_TICKETS = 3;
+
+// Payphone storeId (desde variables de entorno o fallback al valor de producción)
+const PAYPHONE_STORE_ID = import.meta.env.VITE_PAYPHONE_STORE_ID ?? "qay5nYzqYUaoT3yERV2qw";
 
 const formatMoney = (value: number) => `$${value.toLocaleString("es-EC")}`;
 const normalizeQuantity = (value: number) => Math.max(MIN_TICKETS, Math.trunc(value));
@@ -36,6 +39,61 @@ const emptyForm = {
 };
 
 type MetodoPago = "TARJETA" | "TRANSFERENCIA";
+
+// ─── Payphone script loader ────────────────────────────────────────────────────
+
+function usePayphoneScript() {
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    // Hoja de estilos de la cajita
+    if (!document.getElementById("payphone-css")) {
+      const link = document.createElement("link");
+      link.id = "payphone-css";
+      link.rel = "stylesheet";
+      link.href = "https://cdn.payphonetodoesposible.com/box/v1.1/payphone-payment-box.css";
+      document.head.appendChild(link);
+    }
+
+    if (document.getElementById("payphone-sdk")) {
+      // Script ya cargado anteriormente — verificar si PPaymentButtonBox ya está disponible
+      const win = window as unknown as Record<string, unknown>;
+      if (win.PPaymentButtonBox) {
+        setLoaded(true);
+      } else {
+        // Esperar hasta que el módulo se inicialice
+        const interval = setInterval(() => {
+          if ((window as unknown as Record<string, unknown>).PPaymentButtonBox) {
+            setLoaded(true);
+            clearInterval(interval);
+          }
+        }, 100);
+        return () => clearInterval(interval);
+      }
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.id = "payphone-sdk";
+    script.src = "https://cdn.payphonetodoesposible.com/box/v1.1/payphone-payment-box.js";
+    script.type = "module";
+    script.onload = () => {
+      // Los módulos ES son asíncronos — esperar a que PPaymentButtonBox esté en window
+      const interval = setInterval(() => {
+        if ((window as unknown as Record<string, unknown>).PPaymentButtonBox) {
+          setLoaded(true);
+          clearInterval(interval);
+        }
+      }, 100);
+    };
+    script.onerror = () => console.error("No se pudo cargar el SDK de Payphone");
+    document.head.appendChild(script);
+  }, []);
+
+  return loaded;
+}
+
+// ─── Checkout ─────────────────────────────────────────────────────────────────
 
 const Checkout = () => {
   const [searchParams] = useSearchParams();
@@ -55,7 +113,9 @@ const Checkout = () => {
   const [comprobante, setComprobante] = useState<File | null>(null);
   const [comprobantePreview, setComprobantePreview] = useState<string | null>(null);
   const [uploadingComprobante, setUploadingComprobante] = useState(false);
+  const [esperandoPagoPayphone, setEsperandoPagoPayphone] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const payphoneScriptLoaded = usePayphoneScript();
 
   const parsedQuantity = Number(quantity);
   const safeQuantity = Number.isFinite(parsedQuantity) ? normalizeQuantity(parsedQuantity) : MIN_TICKETS;
@@ -78,6 +138,7 @@ const Checkout = () => {
     isCedulaValid &&
     !submitting &&
     !uploadingComprobante &&
+    !esperandoPagoPayphone &&
     !comprobanteRequerido;
 
   const updateField = (field: keyof typeof emptyForm, value: string) => {
@@ -101,6 +162,102 @@ const Checkout = () => {
     setComprobantePreview(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
+
+  // ─── Confirmar pago Payphone ────────────────────────────────────────────────
+  // Llamado por el callback de Payphone tras aprobar el pago en el modal.
+
+  const handlePayphoneSuccess = useCallback(
+    async (transactionId: number, clientTransactionId: string) => {
+      setEsperandoPagoPayphone(true);
+      try {
+        const result = await payphoneApi.confirmar(transactionId, clientTransactionId);
+
+        if (result.yaConfirmada) {
+          notifySuccess("Pago ya procesado", "Tu compra ya fue confirmada anteriormente.");
+          navigate("/compra-confirmada", {
+            replace: true,
+            state: { pendiente: false, nombre: form.nombre, email: form.email, sorteoNombre: activeSorteo?.nombre },
+          });
+          return;
+        }
+
+        const confirmation = {
+          nombre: result.compra?.comprador_nombre ?? form.nombre,
+          email: result.compra?.email ?? form.email,
+          sorteoNombre: activeSorteo?.nombre ?? "",
+          boletos: (result.boletos ?? []).map((b: { id: string; numero: number }) => ({
+            id: b.id,
+            numero: b.numero,
+          })),
+          pendiente: false,
+        };
+        sessionStorage.setItem("lastPurchaseConfirmation", JSON.stringify(confirmation));
+        notifySuccess("¡Pago exitoso!", "Tus boletos fueron asignados y enviados a tu correo.");
+        navigate("/compra-confirmada", { replace: true, state: confirmation });
+      } catch (error) {
+        notifyError("Error al confirmar pago", getErrorMessage(error, "No se pudo verificar el pago. Contáctanos si el cobro fue realizado."));
+      } finally {
+        setEsperandoPagoPayphone(false);
+        setSubmitting(false);
+      }
+    },
+    [navigate, form.nombre, form.email, activeSorteo?.nombre],
+  );
+
+  // ─── Abrir cajita Payphone (SDK v1.1 — PPaymentButtonBox) ────────────────
+
+  const abrirCajitaPayphone = useCallback(
+    (compraId: string, montoEnCentavos: number) => {
+      return new Promise<void>((resolve, reject) => {
+        const win = window as unknown as Record<string, unknown>;
+        const PPaymentButtonBox = win.PPaymentButtonBox as (new (config: Record<string, unknown>) => {
+          render: (containerId: string) => void;
+          onCompletedPayment: (cb: (data: Record<string, unknown>) => void) => void;
+        }) | undefined;
+
+        if (!PPaymentButtonBox) {
+          reject(new Error("El SDK de Payphone no está disponible. Recarga la página e intenta nuevamente."));
+          return;
+        }
+
+        const box = new PPaymentButtonBox({
+          token: PAYPHONE_STORE_ID,          // storeId actúa como token en la cajita
+          amount: montoEnCentavos,           // en centavos
+          amountWithTax: 0,
+          amountWithoutTax: montoEnCentavos,
+          tax: 0,
+          clientTransactionId: compraId,
+          currency: "USD",
+          timeZone: "America/Guayaquil",
+          lang: "es",
+          showPaymentMethodSelector: true,
+          showCardPayment: true,
+          showPayphonePayment: false,
+          showCashPayment: false,
+          showFooter: true,
+        });
+
+        box.render("payphone-box-container");
+
+        box.onCompletedPayment((data) => {
+          const transactionId = Number(data.transactionId ?? data.id ?? 0);
+          const clientTransactionId = String(data.clientTransactionId ?? compraId);
+          const statusCode = Number(data.statusCode ?? data.transactionStatus ?? -1);
+
+          if (statusCode === 3) {
+            resolve();
+            handlePayphoneSuccess(transactionId, clientTransactionId);
+          } else {
+            const msg = String(data.statusMessage ?? data.message ?? "Pago no aprobado o cancelado.");
+            reject(new Error(msg));
+          }
+        });
+      });
+    },
+    [handlePayphoneSuccess],
+  );
+
+  // ─── Submit ────────────────────────────────────────────────────────────────
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -130,34 +287,39 @@ const Checkout = () => {
       return;
     }
 
+    if (metodoPago === "TARJETA" && !payphoneScriptLoaded) {
+      notifyError("Cargando pasarela", "El módulo de pago todavía se está cargando. Intenta en unos segundos.");
+      return;
+    }
+
     setSubmitting(true);
     try {
-      let comprobanteUrl: string | undefined;
-
-      if (metodoPago === "TRANSFERENCIA" && comprobante) {
-        setUploadingComprobante(true);
-        try {
-          comprobanteUrl = await uploadApi.upload(comprobante);
-        } finally {
-          setUploadingComprobante(false);
+      // ── Flujo TRANSFERENCIA ────────────────────────────────────────────────
+      if (metodoPago === "TRANSFERENCIA") {
+        let comprobanteUrl: string | undefined;
+        if (comprobante) {
+          setUploadingComprobante(true);
+          try {
+            comprobanteUrl = await uploadApi.upload(comprobante);
+          } finally {
+            setUploadingComprobante(false);
+          }
         }
-      }
 
-      const result = await comprasApi.crear({
-        sorteoId: activeSorteo.id,
-        cantidadBoletos: safeQuantity,
-        comprador: {
-          nombre: form.nombre.trim(),
-          cedula: form.cedula.trim(),
-          telefono: form.telefono.trim(),
-          email: form.email.trim(),
-          direccion: form.direccion.trim() || undefined,
-        },
-        metodoPago,
-        comprobanteUrl,
-      });
+        const result = await comprasApi.crear({
+          sorteoId: activeSorteo.id,
+          cantidadBoletos: safeQuantity,
+          comprador: {
+            nombre: form.nombre.trim(),
+            cedula: form.cedula.trim(),
+            telefono: form.telefono.trim(),
+            email: form.email.trim(),
+            direccion: form.direccion.trim() || undefined,
+          },
+          metodoPago: "TRANSFERENCIA",
+          comprobanteUrl,
+        });
 
-      if (result.pendiente) {
         notifySuccess(
           "Compra registrada",
           "Tu comprobante está siendo revisado. Te enviaremos los boletos por correo cuando sea aprobado.",
@@ -172,33 +334,46 @@ const Checkout = () => {
             compraId: result.compra.id,
           },
         });
-      } else {
-        const confirmation = {
-          nombre: result.comprador.nombre,
-          email: result.comprador.email,
-          sorteoNombre: activeSorteo.nombre,
-          boletos: result.boletos.map((boleto) => ({
-            id: boleto.id,
-            numero: boleto.numero,
-          })),
-          pendiente: false,
-        };
-        sessionStorage.setItem("lastPurchaseConfirmation", JSON.stringify(confirmation));
-        notifySuccess("Compra registrada", "Tus boletos fueron asignados correctamente.");
-        navigate("/compra-confirmada", { replace: true, state: confirmation });
+        return;
       }
+
+      // ── Flujo TARJETA (Payphone) ───────────────────────────────────────────
+      // 1. Crear la compra en PENDIENTE → obtenemos el compraId
+      const payphoneInit = await payphoneApi.iniciar({
+        sorteoId: activeSorteo.id,
+        cantidadBoletos: safeQuantity,
+        comprador: {
+          nombre: form.nombre.trim(),
+          cedula: form.cedula.trim(),
+          telefono: form.telefono.trim(),
+          email: form.email.trim(),
+          direccion: form.direccion.trim() || undefined,
+        },
+      });
+
+      // 2. Abrir el modal de Payphone — el resto del flujo está en handlePayphoneSuccess
+      setEsperandoPagoPayphone(true);
+      try {
+        await abrirCajitaPayphone(payphoneInit.compraId, payphoneInit.montoEnCentavos);
+      } catch (cancelErr) {
+        // El usuario canceló o hubo un error en el modal
+        notifyError("Pago no completado", getErrorMessage(cancelErr, "El pago fue cancelado o rechazado."));
+        setEsperandoPagoPayphone(false);
+        setSubmitting(false);
+      }
+      // Nota: si onSuccess se disparó, handlePayphoneSuccess maneja el estado final.
     } catch (error) {
       notifyError(getErrorMessage(error, "No se pudo completar la compra."));
-    } finally {
       setSubmitting(false);
     }
   };
 
   const submitLabel = () => {
     if (uploadingComprobante) return "Subiendo comprobante...";
+    if (esperandoPagoPayphone) return "Procesando pago...";
     if (submitting) return "Registrando compra...";
     if (metodoPago === "TRANSFERENCIA") return `Enviar comprobante y reservar ${safeQuantity} boletos`;
-    return `Pagar con tarjeta (próximamente)`;
+    return `Pagar $${total.toLocaleString("es-EC")} con tarjeta`;
   };
 
   return (
@@ -334,9 +509,8 @@ const Checkout = () => {
                     activo={metodoPago === "TARJETA"}
                     onClick={() => setMetodoPago("TARJETA")}
                     icon={<CreditCard className="h-6 w-6" />}
-                    titulo="Tarjeta de crédito"
-                    descripcion="Próximamente"
-                    disabled
+                    titulo="Tarjeta de crédito/débito"
+                    descripcion="Visa · Mastercard · Diners"
                   />
                 </div>
               </div>
@@ -395,6 +569,39 @@ const Checkout = () => {
                     </div>
                   </motion.div>
                 )}
+
+                {/* Cajita Payphone (se monta aquí cuando el SDK renderiza) */}
+                {metodoPago === "TARJETA" && (
+                  <motion.div
+                    key="tarjeta-info"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="overflow-hidden"
+                  >
+                    {!esperandoPagoPayphone && (
+                      <div className="rounded-lg border border-primary/30 bg-secondary/30 p-5">
+                        <div className="mb-2 flex items-center gap-2">
+                          <CreditCard className="h-4 w-4 text-primary" />
+                          <p className="text-sm font-semibold text-foreground/80">Pago seguro con Payphone</p>
+                        </div>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          Al hacer clic en pagar, se abrirá la ventana segura de Payphone donde podrás ingresar los datos de tu tarjeta. Los boletos se asignarán automáticamente una vez confirmado el pago.
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {["Visa", "Mastercard", "Diners", "Discover"].map((brand) => (
+                            <span key={brand} className="rounded border border-border bg-background px-2 py-1 text-xs font-semibold text-foreground/60">
+                              {brand}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {/* Contenedor donde PPaymentButtonBox renderiza la cajita */}
+                    <div id="payphone-box-container" className="mt-3" />
+                  </motion.div>
+                )}
               </AnimatePresence>
 
               {/* Términos */}
@@ -419,6 +626,12 @@ const Checkout = () => {
               {metodoPago === "TRANSFERENCIA" && (
                 <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm leading-relaxed text-amber-300">
                   <strong>Importante:</strong> Al pagar por transferencia, tus boletos serán asignados una vez que el administrador valide tu comprobante. Recibirás los números por correo electrónico.
+                </div>
+              )}
+
+              {esperandoPagoPayphone && (
+                <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 text-sm leading-relaxed text-foreground/80 text-center animate-pulse">
+                  Procesando pago con Payphone... Por favor no cierres esta página.
                 </div>
               )}
 

@@ -589,13 +589,7 @@ const Checkout = () => {
                         <p className="text-xs text-muted-foreground leading-relaxed">
                           Al hacer clic en pagar, se abrirá la ventana segura de Payphone donde podrás ingresar los datos de tu tarjeta. Los boletos se asignarán automáticamente una vez confirmado el pago.
                         </p>
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {["Visa", "Mastercard", "Diners", "Discover"].map((brand) => (
-                            <span key={brand} className="rounded border border-border bg-background px-2 py-1 text-xs font-semibold text-foreground/60">
-                              {brand}
-                            </span>
-                          ))}
-                        </div>
+                        
                       </div>
                     )}
                     {/* Contenedor donde PPaymentButtonBox renderiza la cajita */}

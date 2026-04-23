@@ -1,7 +1,9 @@
+import { request as httpsRequest } from 'node:https'
 import pool from '@/lib/db'
 import { ValidationError, NotFoundError, ForbiddenError, ConflictError } from '@/lib/errors'
 import { sendPurchaseConfirmationEmail } from '@/lib/mail'
 import { emitirFactura, type DatosFactura } from '@/lib/contifico'
+import { getTicketQuantityValidationError } from '@/lib/ticket-quantity'
 import { findSorteoById } from '../sorteos/sorteos.repository'
 import {
   upsertComprador,
@@ -22,22 +24,65 @@ const MAX_REINTENTOS = 3
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 async function payphoneFetch(path: string, init: RequestInit = {}) {
-  const res = await fetch(`https://pay.payphonetodoesposible.com${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${PAYPHONE_TOKEN}`,
-      'Content-Type': 'application/json',
-      ...(init.headers ?? {}),
-    },
-  })
-  const text = await res.text()
-  let data: unknown
-  try { data = JSON.parse(text) } catch { data = text }
-  if (!res.ok) {
-    const msg = typeof data === 'object' && data !== null ? JSON.stringify(data) : String(data)
-    throw new Error(`Payphone API error ${res.status}: ${msg}`)
+  const url = new URL(path, 'https://pay.payphonetodoesposible.com')
+  const method = init.method ?? 'GET'
+  const body =
+    typeof init.body === 'string'
+      ? init.body
+      : init.body
+        ? JSON.stringify(init.body)
+        : undefined
+  const headerEntries =
+    init.headers && !Array.isArray(init.headers)
+      ? Object.entries(init.headers).filter(([, value]) => value !== undefined)
+      : []
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${PAYPHONE_TOKEN}`,
+    'Content-Type': 'application/json',
+    ...(body ? { 'Content-Length': Buffer.byteLength(body).toString() } : {}),
   }
-  return data
+
+  for (const [key, value] of headerEntries) {
+    headers[key] = String(value)
+  }
+
+  return new Promise((resolve, reject) => {
+    const req = httpsRequest(
+      url,
+      {
+        method,
+        headers,
+      },
+      (res) => {
+        let text = ''
+        res.setEncoding('utf8')
+        res.on('data', (chunk) => {
+          text += chunk
+        })
+        res.on('end', () => {
+          let data: unknown
+          try {
+            data = JSON.parse(text)
+          } catch {
+            data = text
+          }
+
+          const status = res.statusCode ?? 500
+          if (status < 200 || status >= 300) {
+            const msg = typeof data === 'object' && data !== null ? JSON.stringify(data) : String(data)
+            reject(new Error(`Payphone API error ${status}: ${msg}`))
+            return
+          }
+
+          resolve(data)
+        })
+      },
+    )
+
+    req.on('error', reject)
+    if (body) req.write(body)
+    req.end()
+  })
 }
 
 // ─── Iniciar pago ─────────────────────────────────────────────────────────────
@@ -66,10 +111,14 @@ export async function iniciarPagoPayphone(data: {
     `SELECT ($1 + 1) - COUNT(*) AS disponibles FROM boletos WHERE sorteo_id = $2`,
     [sorteo.numero_maximo_boletos, data.sorteoId],
   )
-  if (parseInt(dispCheck[0].disponibles) < data.cantidadBoletos) {
-    throw new ValidationError(
-      `No hay suficientes boletos disponibles. Disponibles: ${dispCheck[0].disponibles}`,
-    )
+  const availableTickets = parseInt(dispCheck[0].disponibles, 10)
+  const quantityValidationError = getTicketQuantityValidationError(data.cantidadBoletos, availableTickets)
+  if (quantityValidationError) {
+    throw new ValidationError(quantityValidationError)
+  }
+
+  if (!PAYPHONE_TOKEN || !PAYPHONE_STORE_ID) {
+    throw new ValidationError('La integración de Payphone no está configurada correctamente en el servidor.')
   }
 
   const monto = data.cantidadBoletos * TICKET_PRICE
@@ -94,6 +143,7 @@ export async function iniciarPagoPayphone(data: {
       compraId: compra.id,
       monto,                          // en dólares
       montoEnCentavos: monto * 100,   // Payphone espera centavos
+      token: PAYPHONE_TOKEN,
       storeId: PAYPHONE_STORE_ID,
       clienteNombre: comprador.nombre,
       clienteEmail: comprador.email,
@@ -111,14 +161,29 @@ export async function iniciarPagoPayphone(data: {
 // Verifica con la API de Payphone, y si está aprobado, asigna boletos + Contifico.
 
 export async function confirmarPagoPayphone(transactionId: number, clientTransactionId: string) {
+  console.info('[payphone] confirm.start', { transactionId, clientTransactionId })
+
   // 1. Verificar con Payphone
   const payphoneRes = await payphoneFetch(
-    `/api/button/V2/Confirm?id=${transactionId}&clientTransactionId=${encodeURIComponent(clientTransactionId)}`,
-    { method: 'GET' },
+    '/api/button/V2/Confirm',
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        id: transactionId,
+        clientTxId: clientTransactionId,
+      }),
+    },
   ) as Record<string, unknown>
 
   // statusCode === 3 → aprobada
   const statusCode = Number(payphoneRes.statusCode ?? payphoneRes.transactionStatus ?? -1)
+  console.info('[payphone] confirm.response', {
+    transactionId,
+    clientTransactionId,
+    statusCode,
+    transactionStatus: String(payphoneRes.transactionStatus ?? ''),
+    authorizationCode: String(payphoneRes.authorizationCode ?? ''),
+  })
   if (statusCode !== 3) {
     const msg = String(payphoneRes.statusMessage ?? payphoneRes.message ?? 'Pago no aprobado')
     throw new ValidationError(`El pago no fue aprobado por Payphone: ${msg}`)
@@ -130,16 +195,21 @@ export async function confirmarPagoPayphone(transactionId: number, clientTransac
   if (compra.metodo_pago !== 'TARJETA') {
     throw new ForbiddenError('Esta compra no corresponde a un pago con tarjeta.')
   }
-  if (compra.estado_pago === 'VALIDADO') {
-    // Idempotencia: ya fue procesada (doble callback)
-    return { yaConfirmada: true, compraId: compra.id }
-  }
   if (compra.estado_pago === 'RECHAZADO') {
     throw new ForbiddenError('Esta compra fue rechazada previamente.')
   }
 
   const sorteo = await findSorteoById(compra.sorteo_id)
   if (!sorteo) throw new NotFoundError('Sorteo')
+
+  if (compra.estado_pago === 'VALIDADO') {
+    if (!compra.contifico_documento_id) {
+      await intentarRegistrarContificoTarjeta(compra, sorteo, transactionId, clientTransactionId)
+    }
+
+    // Idempotencia: ya fue procesada (doble callback)
+    return { yaConfirmada: true, compraId: compra.id }
+  }
 
   // 3. Asignar boletos + emitir factura en Contifico
   for (let intento = 1; intento <= MAX_REINTENTOS; intento++) {
@@ -193,7 +263,7 @@ export async function confirmarPagoPayphone(transactionId: number, clientTransac
       const compraActualizada = await actualizarEstadoCompra(
         clientTransactionId,
         'VALIDADO',
-        'payphone-auto',
+        null,
         client,
         contificoResult,
       )
@@ -201,6 +271,12 @@ export async function confirmarPagoPayphone(transactionId: number, clientTransac
       const boletos = await insertarBoletos(compra.sorteo_id, clientTransactionId, numerosAsignados, client)
 
       await client.query('COMMIT')
+      console.info('[payphone] confirm.validated', {
+        compraId: clientTransactionId,
+        transactionId,
+        boletosAsignados: boletos.length,
+        contificoDocumentoId: contificoResult?.documento_id ?? null,
+      })
 
       // Enviar email con los boletos
       try {
@@ -227,6 +303,12 @@ export async function confirmarPagoPayphone(transactionId: number, clientTransac
         pendiente: false,
       }
     } catch (e: unknown) {
+      console.error('[payphone] confirm.error', {
+        compraId: clientTransactionId,
+        transactionId,
+        intento,
+        error: e instanceof Error ? e.message : String(e),
+      })
       await client.query('ROLLBACK')
       const isUniqueViolation =
         e instanceof Error && 'code' in e && (e as NodeJS.ErrnoException).code === '23505'
@@ -253,4 +335,60 @@ async function emitirFacturaTC(datos: Omit<DatosFactura, 'formaCobro' | 'referen
     formaCobro: 'TC',
     referenciaCobro: datos.payphoneTransactionId,
   })
+}
+
+async function intentarRegistrarContificoTarjeta(
+  compra: Awaited<ReturnType<typeof findCompraById>>,
+  sorteo: Awaited<ReturnType<typeof findSorteoById>>,
+  transactionId: number,
+  compraId: string,
+) {
+  if (!compra || !sorteo) return
+
+  try {
+    const factura = await emitirFacturaTC({
+      cedula: compra.cedula,
+      nombre: compra.comprador_nombre,
+      telefono: compra.telefono,
+      email: compra.email,
+      direccion: compra.direccion,
+      cantidadBoletos: compra.total_boletos,
+      sorteoNombre: sorteo.nombre,
+      compraId,
+      payphoneTransactionId: String(transactionId),
+    })
+
+    const client = await pool.connect()
+    try {
+      await client.query('BEGIN')
+      await actualizarEstadoCompra(
+        compraId,
+        'VALIDADO',
+        null,
+        client,
+        {
+          documento_id: factura.documento_id,
+          autorizacion: factura.autorizacion,
+          numero_doc: factura.numero_documento,
+        },
+      )
+      await client.query('COMMIT')
+      console.info('[payphone] confirm.contifico_backfilled', {
+        compraId,
+        transactionId,
+        documentoId: factura.documento_id,
+      })
+    } catch (error) {
+      await client.query('ROLLBACK')
+      throw error
+    } finally {
+      client.release()
+    }
+  } catch (error) {
+    console.error('[payphone] confirm.contifico_backfill_error', {
+      compraId,
+      transactionId,
+      error: error instanceof Error ? error.message : String(error),
+    })
+  }
 }

@@ -1,16 +1,17 @@
 import { z } from 'zod'
+import { INTERNATIONAL_PHONE_MESSAGE, INTERNATIONAL_PHONE_REGEX } from '@/lib/phone'
 
 export const CompradorSchema = z.object({
   nombre: z.string().min(2).max(120),
   cedula: z.string().regex(/^\d{10}$/, 'La cédula debe tener exactamente 10 dígitos'),
-  telefono: z.string().regex(/^(\+593|0)\d{9}$/, 'Teléfono inválido (formato: 0999999999 o +593999999999)'),
+  telefono: z.string().regex(INTERNATIONAL_PHONE_REGEX, INTERNATIONAL_PHONE_MESSAGE),
   email: z.string().email('Email inválido'),
   direccion: z.string().min(5).max(300).optional(),
 })
 
 export const CompraSchema = z.object({
   sorteoId: z.string().uuid('sorteoId debe ser un UUID válido'),
-  cantidadBoletos: z.number().int().min(3, 'La compra mínima es de 3 boletos'),
+  cantidadBoletos: z.number().int().min(1, 'Debes comprar al menos 1 boleto'),
   comprador: CompradorSchema,
   metodoPago: z.enum(['TARJETA', 'TRANSFERENCIA']).default('TARJETA'),
   comprobanteUrl: z.string().url('URL de comprobante inválida').optional(),

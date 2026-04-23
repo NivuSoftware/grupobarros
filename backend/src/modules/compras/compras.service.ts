@@ -1,6 +1,7 @@
 import pool from '@/lib/db'
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '@/lib/errors'
 import { sendPurchaseConfirmationEmail, sendTransferenciaPendienteEmail } from '@/lib/mail'
+import { getTicketQuantityValidationError } from '@/lib/ticket-quantity'
 import { emitirFactura } from '@/lib/contifico'
 import { findSorteoById } from '../sorteos/sorteos.repository'
 import {
@@ -35,10 +36,10 @@ export async function realizarCompra(data: CompraDto) {
      FROM boletos WHERE sorteo_id = $2`,
     [sorteo.numero_maximo_boletos, data.sorteoId],
   )
-  if (parseInt(dispCheck[0].disponibles) < data.cantidadBoletos) {
-    throw new ValidationError(
-      `No hay suficientes boletos disponibles. Disponibles: ${dispCheck[0].disponibles}`,
-    )
+  const availableTickets = parseInt(dispCheck[0].disponibles, 10)
+  const quantityValidationError = getTicketQuantityValidationError(data.cantidadBoletos, availableTickets)
+  if (quantityValidationError) {
+    throw new ValidationError(quantityValidationError)
   }
 
   // Para transferencia: crear compra PENDIENTE sin asignar boletos todavía
@@ -276,8 +277,8 @@ export async function buscarComprasPorCedula(cedula: string) {
   return findComprasByCedula(cedula)
 }
 
-export async function listarComprasPendientes() {
-  return findComprasPendientes()
+export async function listarComprasPendientes(sorteoId?: string) {
+  return findComprasPendientes(sorteoId)
 }
 
 export async function obtenerReporteVentas() {

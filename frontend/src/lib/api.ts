@@ -88,6 +88,8 @@ export interface Compra {
   sorteo_id: string;
   total_boletos: number;
   monto?: number | string | null;
+  metodo_pago: MetodoPago;
+  estado_pago: EstadoPago;
   creado_en: string;
   comprador_nombre: string;
   cedula: string;
@@ -297,8 +299,10 @@ export const comprasApi = {
 
   obtener: (id: string) => request<Compra>(`/api/compras/${id}`),
 
-  listarPendientes: () =>
-    request<CompraPendiente[]>("/api/compras?pendientes=1"),
+  listarPendientes: (sorteoId?: string) =>
+    request<CompraPendiente[]>(
+      `/api/compras?pendientes=1${sorteoId ? `&sorteoId=${encodeURIComponent(sorteoId)}` : ""}`,
+    ),
 
   reporteVentas: () =>
     request<ReporteVentas>("/api/compras?reporte=ventas"),
@@ -328,6 +332,7 @@ export interface PayphoneIniciarResult {
   compraId: string;
   monto: number;
   montoEnCentavos: number;
+  token: string;
   storeId: string;
   clienteNombre: string;
   clienteEmail: string;

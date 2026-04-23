@@ -25,6 +25,7 @@ export async function GET(req: NextRequest) {
   try {
     const cedula = req.nextUrl.searchParams.get('cedula')
     const pendientes = req.nextUrl.searchParams.get('pendientes')
+    const sorteoId = req.nextUrl.searchParams.get('sorteoId') ?? undefined
     const reporte = req.nextUrl.searchParams.get('reporte')
 
     if (pendientes === '1' || reporte === 'ventas') {
@@ -36,7 +37,7 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ success: false, error: 'Token inválido' }, { status: 401 })
       }
       if (reporte === 'ventas') return ok(await obtenerReporteVentas())
-      return ok(await listarComprasPendientes())
+      return ok(await listarComprasPendientes(sorteoId))
     }
 
     if (!cedula) {

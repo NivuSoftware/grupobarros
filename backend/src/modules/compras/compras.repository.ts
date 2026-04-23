@@ -1,6 +1,7 @@
 import type { PoolClient } from 'pg'
 import pool from '@/lib/db'
 import type { CompradorDto } from './compras.schema'
+import { findSorteoActivo } from '../sorteos/sorteos.repository'
 
 const PRECIO_BOLETO = 2
 
@@ -155,7 +156,10 @@ export async function findComprasByCedula(cedula: string) {
   return rows
 }
 
-export async function findComprasPendientes() {
+export async function findComprasPendientes(sorteoId?: string) {
+  const activeSorteoId = sorteoId ?? (await findSorteoActivo())?.id
+  if (!activeSorteoId) return []
+
   const { rows } = await pool.query(
     `SELECT c.*, s.nombre AS sorteo_nombre,
             comp.nombre AS comprador_nombre, comp.cedula, comp.telefono, comp.email
@@ -163,7 +167,10 @@ export async function findComprasPendientes() {
      JOIN compradores comp ON comp.id = c.comprador_id
      JOIN sorteos s ON s.id = c.sorteo_id
      WHERE c.estado_pago = 'PENDIENTE'
+       AND c.metodo_pago = 'TRANSFERENCIA'
+       AND c.sorteo_id = $1
      ORDER BY c.creado_en ASC`,
+    [activeSorteoId],
   )
   return rows
 }
@@ -198,7 +205,7 @@ export async function getReporteVentas() {
 export async function actualizarEstadoCompra(
   id: string,
   accion: 'VALIDADO' | 'RECHAZADO',
-  validadoPor: string,
+  validadoPor: string | null,
   client: PoolClient,
   contifico?: { documento_id: string; autorizacion: string; numero_doc: string },
 ) {

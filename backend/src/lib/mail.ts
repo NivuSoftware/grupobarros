@@ -105,6 +105,9 @@ export async function sendTransferenciaPendienteEmail({
     <tr>
       <td style="padding:18px 24px;text-align:center;border-top:1px solid #2a2416;color:#8f8878;font-size:12px;">
         &copy; ${currentYear} Grupo Barros. Todos los derechos reservados.
+        <div style="margin-top:8px;">
+          Desarrollado por <a href="https://www.nivusoftware.com" style="color:#8f8878;text-decoration:underline;">Nivusoftware</a>
+        </div>
       </td>
     </tr>
   </table>
@@ -215,6 +218,9 @@ export async function sendPurchaseConfirmationEmail({
     <tr>
       <td style="padding:18px 24px;text-align:center;border-top:1px solid #2a2416;color:#8f8878;font-size:12px;">
         &copy; ${currentYear} Grupo Barros. Todos los derechos reservados.
+        <div style="margin-top:8px;">
+          Desarrollado por <a href="https://www.nivusoftware.com" style="color:#8f8878;text-decoration:underline;">Nivusoftware</a>
+        </div>
       </td>
     </tr>
   </table>

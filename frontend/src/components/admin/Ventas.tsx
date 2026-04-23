@@ -35,14 +35,14 @@ export default function Ventas() {
   const cargarPendientes = useCallback(async () => {
     setLoadingPendientes(true);
     try {
-      const res = await comprasApi.listarPendientes();
+      const res = await comprasApi.listarPendientes(sorteoActivo?.id);
       setPendientes(res);
     } catch (err: unknown) {
       notifyError(getErrorMessage(err, "Error al cargar compras pendientes"));
     } finally {
       setLoadingPendientes(false);
     }
-  }, []);
+  }, [sorteoActivo?.id]);
 
   const cargarReporte = useCallback(async () => {
     setLoadingReporte(true);
@@ -63,9 +63,12 @@ export default function Ventas() {
       if (activo) loadBoletos(activo.id, 1);
     }).catch((err: unknown) => notifyError(getErrorMessage(err, "Error al cargar sorteo activo")));
 
-    cargarPendientes();
     cargarReporte();
-  }, [cargarPendientes, cargarReporte]);
+  }, [cargarReporte]);
+
+  useEffect(() => {
+    cargarPendientes();
+  }, [cargarPendientes]);
 
   const loadBoletos = async (sorteoId: string, p: number) => {
     setLoadingBoletos(true);

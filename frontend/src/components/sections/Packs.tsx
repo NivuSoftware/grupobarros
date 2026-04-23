@@ -1,9 +1,17 @@
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useSorteoActivo } from "@/lib/useSorteoActivo";
+import {
+  getDefaultTicketQuantity,
+  getMinimumSelectableTickets,
+  getNormalizedCheckoutQuantity,
+  getTicketQuantityError,
+  isTicketQuantityAllowed,
+  normalizeTicketQuantityInput,
+} from "@/lib/ticketQuantity";
 
 const TICKET_PRICE = 2;
-const MIN_TICKETS = 3;
 
 const packs = [3, 8, 10, 20, 30, 50].map((numbers) => ({
   id: String(numbers),
@@ -16,12 +24,35 @@ const formatMoney = (value: number) => `$${value.toLocaleString("es-EC")}`;
 const checkoutUrl = (numbers: number) => `/checkout?cantidad=${numbers}`;
 
 export const Packs = () => {
-  const [customQuantity, setCustomQuantity] = useState(String(MIN_TICKETS));
+  const { data } = useSorteoActivo();
+  const availableTickets = data?.stats.disponibles;
+  const [customQuantity, setCustomQuantity] = useState(String(getDefaultTicketQuantity()));
   const parsedCustomQuantity = Number(customQuantity);
   const safeCustomQuantity = Number.isFinite(parsedCustomQuantity)
-    ? Math.max(MIN_TICKETS, Math.trunc(parsedCustomQuantity))
-    : MIN_TICKETS;
+    ? normalizeTicketQuantityInput(parsedCustomQuantity)
+    : getDefaultTicketQuantity(availableTickets);
+  const customQuantityAllowed =
+    typeof availableTickets === "number" ? isTicketQuantityAllowed(safeCustomQuantity, availableTickets) : true;
+  const customQuantityError =
+    typeof availableTickets === "number" ? getTicketQuantityError(safeCustomQuantity, availableTickets) : null;
   const customPrice = safeCustomQuantity * TICKET_PRICE;
+
+  useEffect(() => {
+    if (typeof availableTickets !== "number") return;
+
+    setCustomQuantity((current) => {
+      const currentValue = Number(current);
+      const normalizedCurrent = Number.isFinite(currentValue)
+        ? normalizeTicketQuantityInput(currentValue)
+        : getDefaultTicketQuantity(availableTickets);
+
+      if (isTicketQuantityAllowed(normalizedCurrent, availableTickets)) {
+        return String(normalizedCurrent);
+      }
+
+      return String(getDefaultTicketQuantity(availableTickets));
+    });
+  }, [availableTickets]);
 
   return (
     <section id="packs" className="relative py-24 sm:py-32">
@@ -40,33 +71,45 @@ export const Packs = () => {
         </motion.div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 max-w-6xl mx-auto">
-          {packs.map((pack, i) => (
-            <motion.article
-              key={pack.id}
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-50px" }}
-              transition={{ duration: 0.55, delay: i * 0.08 }}
-              className={`relative rounded-lg border border-border bg-card p-6 text-center transition-all duration-300 hover:-translate-y-1 hover:border-primary/60 ${
-                pack.numbers === 10 ? "pt-8" : ""
-              }`}
-            >
-              {pack.numbers === 10 && (
-                <span className="absolute right-5 top-0 -translate-y-1/2 rounded-full bg-gold-gradient px-4 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-primary-foreground shadow-gold">
-                  (MAS VENDIDO)
-                </span>
-              )}
-              <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Cantidad</p>
-              <h3 className="mt-2 font-display text-4xl font-bold">x{pack.numbers} boletos</h3>
-              <p className="mt-3 font-display text-5xl font-bold text-gold-gradient">{formatMoney(pack.price)}</p>
-              <Link
-                to={checkoutUrl(pack.numbers)}
-                className="mt-6 inline-flex w-full items-center justify-center rounded-lg bg-gold-gradient px-5 py-3 font-bold text-primary-foreground shadow-gold transition-transform hover:scale-[1.02] active:scale-[0.98]"
+          {packs.map((pack, i) => {
+            const packAllowed = typeof availableTickets === "number"
+              ? isTicketQuantityAllowed(pack.numbers, availableTickets)
+              : true;
+
+            return (
+              <motion.article
+                key={pack.id}
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ duration: 0.55, delay: i * 0.08 }}
+                className={`relative rounded-lg border border-border bg-card p-6 text-center transition-all duration-300 hover:-translate-y-1 hover:border-primary/60 ${
+                  pack.numbers === 10 ? "pt-8" : ""
+                }`}
               >
-                Comprar
-              </Link>
-            </motion.article>
-          ))}
+                {pack.numbers === 10 && (
+                  <span className="absolute right-5 top-0 -translate-y-1/2 rounded-full bg-gold-gradient px-4 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-primary-foreground shadow-gold">
+                    (MAS VENDIDO)
+                  </span>
+                )}
+                <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Cantidad</p>
+                <h3 className="mt-2 font-display text-4xl font-bold">x{pack.numbers} boletos</h3>
+                <p className="mt-3 font-display text-5xl font-bold text-gold-gradient">{formatMoney(pack.price)}</p>
+                <Link
+                  to={packAllowed ? checkoutUrl(pack.numbers) : "#packs"}
+                  onClick={(event) => {
+                    if (!packAllowed) event.preventDefault();
+                  }}
+                  aria-disabled={!packAllowed}
+                  className={`mt-6 inline-flex w-full items-center justify-center rounded-lg bg-gold-gradient px-5 py-3 font-bold text-primary-foreground shadow-gold transition-transform ${
+                    packAllowed ? "hover:scale-[1.02] active:scale-[0.98]" : "cursor-not-allowed opacity-50"
+                  }`}
+                >
+                  Comprar
+                </Link>
+              </motion.article>
+            );
+          })}
         </div>
 
         <motion.div
@@ -87,23 +130,32 @@ export const Packs = () => {
             <input
               id="customTickets"
               type="number"
-              min={MIN_TICKETS}
+              min={getMinimumSelectableTickets(availableTickets)}
               step={1}
               value={customQuantity}
               onChange={(event) => setCustomQuantity(event.target.value)}
-              onBlur={() => setCustomQuantity(String(safeCustomQuantity))}
+              onBlur={() => setCustomQuantity(String(getNormalizedCheckoutQuantity(parsedCustomQuantity, availableTickets)))}
               className="h-12 rounded-lg border border-primary/30 bg-background px-4 text-center text-lg font-bold text-foreground outline-none focus:border-primary"
             />
             <div className="flex h-12 items-center justify-center rounded-lg border border-border bg-secondary px-6 font-display text-2xl font-bold text-gold-gradient">
               {formatMoney(customPrice)}
             </div>
             <Link
-              to={checkoutUrl(safeCustomQuantity)}
-              className="inline-flex h-12 items-center justify-center rounded-lg bg-gold-gradient px-8 font-bold text-primary-foreground shadow-gold transition-transform hover:scale-[1.02] active:scale-[0.98]"
+              to={customQuantityAllowed ? checkoutUrl(safeCustomQuantity) : "#packs"}
+              onClick={(event) => {
+                if (!customQuantityAllowed) event.preventDefault();
+              }}
+              aria-disabled={!customQuantityAllowed}
+              className={`inline-flex h-12 items-center justify-center rounded-lg bg-gold-gradient px-8 font-bold text-primary-foreground shadow-gold transition-transform ${
+                customQuantityAllowed ? "hover:scale-[1.02] active:scale-[0.98]" : "cursor-not-allowed opacity-50"
+              }`}
             >
               Comprar
             </Link>
           </div>
+          {customQuantityError && (
+            <p className="mt-3 text-center text-sm text-destructive">{customQuantityError}</p>
+          )}
         </motion.div>
       </div>
     </section>

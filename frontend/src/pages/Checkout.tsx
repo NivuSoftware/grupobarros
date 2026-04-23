@@ -19,16 +19,41 @@ import { Footer } from "@/components/sections/Footer";
 import { getErrorMessage, notifyError, notifySuccess } from "@/lib/alerts";
 import { comprasApi, payphoneApi, uploadApi } from "@/lib/api";
 import { isValidEcuadorianCedula } from "@/lib/cedulaEcuatoriana";
+import {
+  getDefaultTicketQuantity,
+  getMinimumSelectableTickets,
+  getNormalizedCheckoutQuantity,
+  getTicketQuantityError,
+  isTicketQuantityAllowed,
+  normalizeTicketQuantityInput,
+} from "@/lib/ticketQuantity";
 import { useSorteoActivo } from "@/lib/useSorteoActivo";
 
 const TICKET_PRICE = 2;
-const MIN_TICKETS = 3;
-
-// Payphone storeId (desde variables de entorno o fallback al valor de producción)
-const PAYPHONE_STORE_ID = import.meta.env.VITE_PAYPHONE_STORE_ID ?? "qay5nYzqYUaoT3yERV2qw";
+const PHONE_COUNTRY_OPTIONS = [
+  { value: "+593", label: "Ecuador" },
+  { value: "+57", label: "Colombia" },
+  { value: "+51", label: "Perú" },
+  { value: "+1", label: "Estados Unidos / Canadá" },
+  { value: "+52", label: "México" },
+  { value: "+34", label: "España" },
+  { value: "+56", label: "Chile" },
+  { value: "+54", label: "Argentina" },
+] as const;
+const INTERNATIONAL_PHONE_REGEX = /^\+[1-9]\d{7,14}$/;
 
 const formatMoney = (value: number) => `$${value.toLocaleString("es-EC")}`;
-const normalizeQuantity = (value: number) => Math.max(MIN_TICKETS, Math.trunc(value));
+const buildInternationalPhone = (countryCode: string, localNumber: string) => {
+  if (!countryCode) return "";
+  const digits = localNumber.replace(/\D/g, "").replace(/^0+/, "");
+  return `${countryCode}${digits}`;
+};
+
+function clearPayphoneRecoveryContext() {
+  sessionStorage.removeItem("lastPayphoneCompraId");
+  sessionStorage.removeItem("lastPayphoneContext");
+  sessionStorage.removeItem("lastPayphoneTransactionId");
+}
 
 const emptyForm = {
   nombre: "",
@@ -100,7 +125,7 @@ const Checkout = () => {
   const navigate = useNavigate();
   const initialQuantity = useMemo(() => {
     const value = Number(searchParams.get("cantidad"));
-    return Number.isFinite(value) ? normalizeQuantity(value) : MIN_TICKETS;
+    return Number.isFinite(value) ? normalizeTicketQuantityInput(value) : getDefaultTicketQuantity();
   }, [searchParams]);
 
   const { data, loading } = useSorteoActivo();
@@ -108,6 +133,8 @@ const Checkout = () => {
   const [form, setForm] = useState(emptyForm);
   const [accepted, setAccepted] = useState(false);
   const [cedulaTouched, setCedulaTouched] = useState(false);
+  const [phoneCountryCode, setPhoneCountryCode] = useState("");
+  const [phoneTouched, setPhoneTouched] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [metodoPago, setMetodoPago] = useState<MetodoPago>("TRANSFERENCIA");
   const [comprobante, setComprobante] = useState<File | null>(null);
@@ -118,10 +145,14 @@ const Checkout = () => {
   const payphoneScriptLoaded = usePayphoneScript();
 
   const parsedQuantity = Number(quantity);
-  const safeQuantity = Number.isFinite(parsedQuantity) ? normalizeQuantity(parsedQuantity) : MIN_TICKETS;
-  const total = safeQuantity * TICKET_PRICE;
   const activeSorteo = data?.sorteo;
   const availableTickets = data?.stats.disponibles ?? 0;
+  const normalizedQuantity = Number.isFinite(parsedQuantity)
+    ? normalizeTicketQuantityInput(parsedQuantity)
+    : getDefaultTicketQuantity(availableTickets);
+  const quantityError = activeSorteo ? getTicketQuantityError(normalizedQuantity, availableTickets) : null;
+  const quantityAllowed = activeSorteo ? isTicketQuantityAllowed(normalizedQuantity, availableTickets) : false;
+  const total = normalizedQuantity * TICKET_PRICE;
   const cedula = form.cedula.trim();
   const isCedulaValid = isValidEcuadorianCedula(cedula);
   const shouldShowCedulaError = cedulaTouched && cedula.length > 0 && !isCedulaValid;
@@ -129,13 +160,22 @@ const Checkout = () => {
     cedula.length < 10
       ? "La cédula debe tener 10 dígitos."
       : "Ingresa una cédula ecuatoriana válida.";
+  const internationalPhone = buildInternationalPhone(phoneCountryCode, form.telefono);
+  const isPhoneValid = INTERNATIONAL_PHONE_REGEX.test(internationalPhone);
+  const shouldShowPhoneError = phoneTouched && !isPhoneValid;
+  const phoneErrorMessage = !phoneCountryCode
+    ? "Selecciona el código de país."
+    : form.telefono.replace(/\D/g, "").length === 0
+    ? "Ingresa tu número de teléfono."
+    : "Ingresa un número válido. Se guardará con formato internacional.";
 
   const comprobanteRequerido = metodoPago === "TRANSFERENCIA" && !comprobante;
   const canBuy =
     !!activeSorteo &&
-    safeQuantity <= availableTickets &&
+    quantityAllowed &&
     accepted &&
     isCedulaValid &&
+    isPhoneValid &&
     !submitting &&
     !uploadingComprobante &&
     !esperandoPagoPayphone &&
@@ -144,6 +184,23 @@ const Checkout = () => {
   const updateField = (field: keyof typeof emptyForm, value: string) => {
     setForm((current) => ({ ...current, [field]: value }));
   };
+
+  useEffect(() => {
+    if (!activeSorteo) return;
+
+    setQuantity((current) => {
+      const currentValue = Number(current);
+      const normalizedCurrent = Number.isFinite(currentValue)
+        ? normalizeTicketQuantityInput(currentValue)
+        : getDefaultTicketQuantity(availableTickets);
+
+      if (isTicketQuantityAllowed(normalizedCurrent, availableTickets)) {
+        return String(normalizedCurrent);
+      }
+
+      return String(getDefaultTicketQuantity(availableTickets));
+    });
+  }, [activeSorteo, availableTickets]);
 
   const handleComprobanteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -174,13 +231,20 @@ const Checkout = () => {
 
         if (result.yaConfirmada) {
           notifySuccess("Pago ya procesado", "Tu compra ya fue confirmada anteriormente.");
-          navigate("/compra-confirmada", {
-            replace: true,
-            state: { pendiente: false, nombre: form.nombre, email: form.email, sorteoNombre: activeSorteo?.nombre },
-          });
+          clearPayphoneRecoveryContext();
+          const confirmation = {
+            nombre: form.nombre,
+            email: form.email,
+            sorteoNombre: activeSorteo?.nombre ?? "",
+            pendiente: false,
+            metodoPago: "TARJETA" as const,
+          };
+          sessionStorage.setItem("lastPurchaseConfirmation", JSON.stringify(confirmation));
+          navigate("/compra-confirmada", { replace: true, state: confirmation });
           return;
         }
 
+        clearPayphoneRecoveryContext();
         const confirmation = {
           nombre: result.compra?.comprador_nombre ?? form.nombre,
           email: result.compra?.email ?? form.email,
@@ -190,6 +254,7 @@ const Checkout = () => {
             numero: b.numero,
           })),
           pendiente: false,
+          metodoPago: "TARJETA" as const,
         };
         sessionStorage.setItem("lastPurchaseConfirmation", JSON.stringify(confirmation));
         notifySuccess("¡Pago exitoso!", "Tus boletos fueron asignados y enviados a tu correo.");
@@ -207,7 +272,7 @@ const Checkout = () => {
   // ─── Abrir cajita Payphone (SDK v1.1 — PPaymentButtonBox) ────────────────
 
   const abrirCajitaPayphone = useCallback(
-    (compraId: string, montoEnCentavos: number) => {
+    (config: { compraId: string; montoEnCentavos: number; token: string; storeId: string }) => {
       return new Promise<void>((resolve, reject) => {
         const win = window as unknown as Record<string, unknown>;
         const PPaymentButtonBox = win.PPaymentButtonBox as (new (config: Record<string, unknown>) => {
@@ -221,15 +286,22 @@ const Checkout = () => {
         }
 
         const box = new PPaymentButtonBox({
-          token: PAYPHONE_STORE_ID,          // storeId actúa como token en la cajita
-          amount: montoEnCentavos,           // en centavos
+          token: config.token,
+          amount: config.montoEnCentavos,
           amountWithTax: 0,
-          amountWithoutTax: montoEnCentavos,
+          amountWithoutTax: config.montoEnCentavos,
           tax: 0,
-          clientTransactionId: compraId,
+          clientTransactionId: config.compraId,
           currency: "USD",
-          timeZone: "America/Guayaquil",
+          timeZone: -5,
+          storeId: config.storeId,
+          reference: `Compra Grupo Barros ${config.compraId}`,
           lang: "es",
+          defaultMethod: "card",
+          phoneNumber: internationalPhone,
+          email: form.email.trim(),
+          documentId: form.cedula.trim(),
+          identificationType: 1,
           showPaymentMethodSelector: true,
           showCardPayment: true,
           showPayphonePayment: false,
@@ -241,10 +313,11 @@ const Checkout = () => {
 
         box.onCompletedPayment((data) => {
           const transactionId = Number(data.transactionId ?? data.id ?? 0);
-          const clientTransactionId = String(data.clientTransactionId ?? compraId);
+          const clientTransactionId = String(data.clientTransactionId ?? config.compraId);
           const statusCode = Number(data.statusCode ?? data.transactionStatus ?? -1);
 
           if (statusCode === 3) {
+            sessionStorage.setItem("lastPayphoneTransactionId", String(transactionId));
             resolve();
             handlePayphoneSuccess(transactionId, clientTransactionId);
           } else {
@@ -254,7 +327,7 @@ const Checkout = () => {
         });
       });
     },
-    [handlePayphoneSuccess],
+    [form.cedula, form.email, handlePayphoneSuccess, internationalPhone],
   );
 
   // ─── Submit ────────────────────────────────────────────────────────────────
@@ -267,8 +340,8 @@ const Checkout = () => {
       return;
     }
 
-    if (safeQuantity > availableTickets) {
-      notifyError("Boletos insuficientes", `Solo hay ${availableTickets.toLocaleString("es-EC")} boletos disponibles.`);
+    if (!quantityAllowed) {
+      notifyError("Cantidad inválida", quantityError ?? "La cantidad de boletos seleccionada no es válida.");
       return;
     }
 
@@ -282,6 +355,17 @@ const Checkout = () => {
       return;
     }
 
+    if (!isPhoneValid) {
+      setPhoneTouched(true);
+      notifyError(
+        "Teléfono inválido",
+        !phoneCountryCode
+          ? "Selecciona el código de país e ingresa tu número para continuar."
+          : "Ingresa un número válido para el país seleccionado.",
+      );
+      return;
+    }
+
     if (metodoPago === "TRANSFERENCIA" && !comprobante) {
       notifyError("Comprobante requerido", "Debes adjuntar la foto del comprobante de transferencia.");
       return;
@@ -291,6 +375,10 @@ const Checkout = () => {
       notifyError("Cargando pasarela", "El módulo de pago todavía se está cargando. Intenta en unos segundos.");
       return;
     }
+
+    // Limpiar datos de confirmaciones anteriores para evitar que se mezclen
+    sessionStorage.removeItem("lastPurchaseConfirmation");
+    clearPayphoneRecoveryContext();
 
     setSubmitting(true);
     try {
@@ -308,11 +396,11 @@ const Checkout = () => {
 
         const result = await comprasApi.crear({
           sorteoId: activeSorteo.id,
-          cantidadBoletos: safeQuantity,
+          cantidadBoletos: normalizedQuantity,
           comprador: {
             nombre: form.nombre.trim(),
             cedula: form.cedula.trim(),
-            telefono: form.telefono.trim(),
+            telefono: internationalPhone,
             email: form.email.trim(),
             direccion: form.direccion.trim() || undefined,
           },
@@ -332,6 +420,7 @@ const Checkout = () => {
             sorteoNombre: activeSorteo.nombre,
             pendiente: true,
             compraId: result.compra.id,
+            metodoPago: "TRANSFERENCIA" as const,
           },
         });
         return;
@@ -341,20 +430,28 @@ const Checkout = () => {
       // 1. Crear la compra en PENDIENTE → obtenemos el compraId
       const payphoneInit = await payphoneApi.iniciar({
         sorteoId: activeSorteo.id,
-        cantidadBoletos: safeQuantity,
+        cantidadBoletos: normalizedQuantity,
         comprador: {
           nombre: form.nombre.trim(),
           cedula: form.cedula.trim(),
-          telefono: form.telefono.trim(),
+          telefono: internationalPhone,
           email: form.email.trim(),
           direccion: form.direccion.trim() || undefined,
         },
       });
 
-      // 2. Abrir el modal de Payphone — el resto del flujo está en handlePayphoneSuccess
+      // 2. Guardar compraId para recuperar datos si el usuario recarga la página de confirmación
+      sessionStorage.setItem("lastPayphoneCompraId", payphoneInit.compraId);
+      sessionStorage.setItem("lastPayphoneContext", JSON.stringify({
+        nombre: form.nombre.trim(),
+        email: form.email.trim(),
+        sorteoNombre: activeSorteo.nombre,
+      }));
+
+      // 3. Abrir el modal de Payphone — el resto del flujo está en handlePayphoneSuccess
       setEsperandoPagoPayphone(true);
       try {
-        await abrirCajitaPayphone(payphoneInit.compraId, payphoneInit.montoEnCentavos);
+        await abrirCajitaPayphone(payphoneInit);
       } catch (cancelErr) {
         // El usuario canceló o hubo un error en el modal
         notifyError("Pago no completado", getErrorMessage(cancelErr, "El pago fue cancelado o rechazado."));
@@ -372,7 +469,7 @@ const Checkout = () => {
     if (uploadingComprobante) return "Subiendo comprobante...";
     if (esperandoPagoPayphone) return "Procesando pago...";
     if (submitting) return "Registrando compra...";
-    if (metodoPago === "TRANSFERENCIA") return `Enviar comprobante y reservar ${safeQuantity} boletos`;
+    if (metodoPago === "TRANSFERENCIA") return `Enviar comprobante y reservar ${normalizedQuantity} boletos`;
     return `Pagar $${total.toLocaleString("es-EC")} con tarjeta`;
   };
 
@@ -460,13 +557,54 @@ const Checkout = () => {
                     )}
                   </Field>
 
-                  <Field label="Teléfono" icon={<Phone className="h-4 w-4" />}>
+                  <Field label="Teléfono" icon={<Phone className="h-4 w-4" />} className="sm:col-span-2">
+                    <div className="flex gap-3">
+                      <select
+                        required
+                        value={phoneCountryCode}
+                        onChange={(event) => setPhoneCountryCode(event.target.value)}
+                        onBlur={() => setPhoneTouched(true)}
+                        className="h-12 w-40 rounded-lg border border-primary/30 bg-background px-3 text-sm text-foreground outline-none focus:border-primary"
+                        autoComplete="tel-country-code"
+                      >
+                        <option value="">Código</option>
+                        {PHONE_COUNTRY_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label} ({option.value})
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        required
+                        inputMode="tel"
+                        value={form.telefono}
+                        onChange={(event) => updateField("telefono", event.target.value.replace(/\D/g, ""))}
+                        onBlur={() => setPhoneTouched(true)}
+                        className="checkout-input flex-1"
+                        placeholder="999567465"
+                        autoComplete="tel-national"
+                      />
+                    </div>
+                    {shouldShowPhoneError ? (
+                      <p className="mt-2 text-xs text-destructive">{phoneErrorMessage}</p>
+                    ) : (
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Selecciona el código de país y escribe el número local. Guardaremos el teléfono como{" "}
+                        <span className="font-semibold text-foreground/80">
+                          {internationalPhone || "formato internacional"}
+                        </span>
+                        .
+                      </p>
+                    )}
+                  </Field>
+
+                  <Field label="Dirección" icon={<MapPin className="h-4 w-4" />}>
                     <input
-                      required
-                      value={form.telefono}
-                      onChange={(event) => updateField("telefono", event.target.value)}
+                      value={form.direccion}
+                      onChange={(event) => updateField("direccion", event.target.value)}
                       className="checkout-input"
-                      autoComplete="tel"
+                      placeholder="Tu dirección (para la factura)"
+                      autoComplete="street-address"
                     />
                   </Field>
 
@@ -479,16 +617,6 @@ const Checkout = () => {
                       className="checkout-input"
                       placeholder="correo@dominio.com"
                       autoComplete="email"
-                    />
-                  </Field>
-
-                  <Field label="Dirección" icon={<MapPin className="h-4 w-4" />}>
-                    <input
-                      value={form.direccion}
-                      onChange={(event) => updateField("direccion", event.target.value)}
-                      className="checkout-input"
-                      placeholder="Tu dirección (para la factura)"
-                      autoComplete="street-address"
                     />
                   </Field>
                 </div>
@@ -664,18 +792,18 @@ const Checkout = () => {
                       <input
                         id="checkoutQuantity"
                         type="number"
-                        min={MIN_TICKETS}
+                        min={getMinimumSelectableTickets(availableTickets)}
                         max={availableTickets}
                         step={1}
                         value={quantity}
                         onChange={(event) => setQuantity(event.target.value)}
-                        onBlur={() => setQuantity(String(safeQuantity))}
+                        onBlur={() => setQuantity(String(getNormalizedCheckoutQuantity(parsedQuantity, availableTickets)))}
                         className="mt-2 h-12 w-full rounded-lg border border-primary/30 bg-background px-4 text-center text-xl font-bold text-foreground outline-none focus:border-primary"
                       />
                     </div>
 
                     <SummaryRow label="Valor por boleto" value={formatMoney(TICKET_PRICE)} />
-                    <SummaryRow label="Cantidad" value={`x${safeQuantity}`} />
+                    <SummaryRow label="Cantidad" value={`x${normalizedQuantity}`} />
 
                     <div className="border-t border-border pt-4">
                       <div className="flex items-end justify-between gap-4">
@@ -685,9 +813,9 @@ const Checkout = () => {
                     </div>
                   </div>
 
-                  {safeQuantity > availableTickets && (
+                  {quantityError && (
                     <p className="mt-4 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-                      La cantidad supera los boletos disponibles.
+                      {quantityError}
                     </p>
                   )}
                 </>
@@ -759,9 +887,19 @@ function MetodoPagoCard({
   );
 }
 
-function Field({ label, icon, children }: { label: string; icon: ReactNode; children: ReactNode }) {
+function Field({
+  label,
+  icon,
+  children,
+  className = "",
+}: {
+  label: string;
+  icon: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
   return (
-    <label className="block">
+    <label className={`block ${className}`.trim()}>
       <span className="mb-2 flex items-center gap-2 text-sm font-semibold text-foreground/80">
         <span className="text-primary">{icon}</span>
         {label}

@@ -7,6 +7,14 @@ const PRODUCTO_BOLETO_ID = process.env.CONTIFICO_PRODUCTO_ID ?? ''
 const DOC_PREFIJO = process.env.CONTIFICO_DOC_PREFIJO ?? '001-001'
 // ID de la cuenta bancaria donde se reciben las transferencias (configurar en .env)
 const CUENTA_BANCARIA_ID = process.env.CONTIFICO_CUENTA_BANCARIA_ID ?? ''
+// Tipo de transaccion TC requerido por Contifico: D, M, E, P, A
+const TC_TIPO_PING = process.env.CONTIFICO_TC_TIPO_PING ?? 'P'
+const TC_TIPO_PING_CANDIDATES = (
+  process.env.CONTIFICO_TC_TIPO_PING_CANDIDATES ?? `${TC_TIPO_PING},D,M,E,P,A`
+)
+  .split(',')
+  .map((value) => value.trim().toUpperCase())
+  .filter(Boolean)
 const PRECIO_BOLETO = 2
 
 function formatDate(date: Date): string {
@@ -72,82 +80,135 @@ export interface ResultadoFactura {
   numero_documento: string
 }
 
+function getTipoPingCandidates() {
+  return [...new Set(TC_TIPO_PING_CANDIDATES)].filter((value) =>
+    ['D', 'M', 'E', 'P', 'A'].includes(value),
+  )
+}
+
+function shouldRetryWithAnotherTipoPing(error: unknown) {
+  return (
+    error instanceof Error &&
+    (error.message.includes('tipo_ping') || error.message.includes('cuenta asignada tipo_ping'))
+  )
+}
+
+function buildCobrosPayload(datos: DatosFactura, total: number, hoy: string, tipoPing?: string) {
+  const formaCobro = datos.formaCobro ?? 'TRA'
+  const numeroComprobante = datos.referenciaCobro ?? datos.compraId.slice(0, 15)
+
+  if (formaCobro === 'TC') {
+    return [
+      {
+        forma_cobro: formaCobro,
+        monto: total,
+        fecha: hoy,
+        numero_comprobante: numeroComprobante,
+        tipo_ping: tipoPing ?? TC_TIPO_PING,
+      },
+    ]
+  }
+
+  return [
+    {
+      forma_cobro: formaCobro,
+      monto: total,
+      fecha: hoy,
+      cuenta_bancaria_id: formaCobro === 'TRA' ? (CUENTA_BANCARIA_ID || null) : null,
+      numero_comprobante: numeroComprobante,
+      tipo_ping: null,
+    },
+  ]
+}
+
 export async function emitirFactura(datos: DatosFactura): Promise<ResultadoFactura> {
   const hoy = formatDate(new Date())
   const totalBoletos = datos.cantidadBoletos
   const precioUnitario = PRECIO_BOLETO
-  // El servicio "Boleto Rifa" tiene 15% IVA
-  const subtotal15 = parseFloat((totalBoletos * precioUnitario).toFixed(2))
-  const iva = parseFloat((subtotal15 * 0.15).toFixed(2))
-  const total = parseFloat((subtotal15 + iva).toFixed(2))
+  const subtotal0 = parseFloat((totalBoletos * precioUnitario).toFixed(2))
+  const iva = 0.0
+  const total = subtotal0
   const numeroDocumento = `${DOC_PREFIJO}-${generarSecuencial(datos.compraId)}`
 
-  const body = {
-    pos: API_TOKEN,
-    fecha_emision: hoy,
-    tipo_documento: 'FAC',
-    documento: numeroDocumento,
-    electronico: true,
-    estado: 'P',
-    autorizacion: '',
-    caja_id: null,
-    cliente: {
-      cedula: datos.cedula,
-      razon_social: datos.nombre,
-      telefonos: datos.telefono,
-      direccion: datos.direccion ?? 'Ecuador',
-      tipo: 'N',
-      email: datos.email,
-      es_extranjero: false,
-    },
-    descripcion: `Boletos sorteo: ${datos.sorteoNombre}`,
-    subtotal_0: 0.0,
-    subtotal_12: subtotal15,
-    iva: iva,
-    ice: 0.0,
-    servicio: 0.0,
-    total: total,
-    adicional1: datos.compraId,
-    adicional2: '',
-    detalles: [
-      {
-        producto_id: PRODUCTO_BOLETO_ID,
-        cantidad: totalBoletos,
-        precio: precioUnitario,
-        porcentaje_iva: 15,
-        porcentaje_descuento: 0.0,
-        base_cero: 0.0,
-        base_gravable: subtotal15,
-        base_no_gravable: 0.0,
-      },
-    ],
-    // Sin cobros — la factura queda en estado P (pendiente) ya que se validó por transferencia
-  }
-
-  const response = await contificoFetch('/documento/', {
-    method: 'POST',
-    body: JSON.stringify(body),
-  }) as Record<string, unknown>
-
-  const documentoId = String(response.id ?? '')
-
-  // Registrar el cobro para que la factura quede en estado cobrado
   const formaCobro = datos.formaCobro ?? 'TRA'
-  const numeroComprobante = datos.referenciaCobro ?? datos.compraId.slice(0, 15)
-  await contificoFetch(`/documento/${documentoId}/cobro/`, {
-    method: 'POST',
-    body: JSON.stringify({
-      forma_cobro: formaCobro,
-      monto: total,
-      tipo_ping: null,
-      cuenta_bancaria_id: formaCobro === 'TRA' ? (CUENTA_BANCARIA_ID || null) : null,
-      numero_comprobante: numeroComprobante,
-    }),
-  })
+  const tipoPingCandidates = formaCobro === 'TC' ? getTipoPingCandidates() : [undefined]
+  let lastError: unknown
 
-  return {
-    documento_id: documentoId,
-    autorizacion: String(response.autorizacion ?? ''),
-    numero_documento: String(response.documento ?? ''),
+  for (const tipoPing of tipoPingCandidates) {
+    const body = {
+      pos: API_TOKEN,
+      fecha_emision: hoy,
+      tipo_documento: 'FAC',
+      documento: numeroDocumento,
+      electronico: true,
+      estado: 'P',
+      autorizacion: '',
+      caja_id: null,
+      cliente: {
+        cedula: datos.cedula,
+        razon_social: datos.nombre,
+        telefonos: datos.telefono,
+        direccion: datos.direccion ?? 'Ecuador',
+        tipo: 'N',
+        email: datos.email,
+        es_extranjero: false,
+      },
+      descripcion: `Boletos sorteo: ${datos.sorteoNombre}`,
+      subtotal_0: subtotal0,
+      subtotal_12: 0.0,
+      iva: iva,
+      ice: 0.0,
+      servicio: 0.0,
+      total: total,
+      adicional1: datos.compraId,
+      adicional2: '',
+      detalles: [
+        {
+          producto_id: PRODUCTO_BOLETO_ID,
+          cantidad: totalBoletos,
+          precio: precioUnitario,
+          porcentaje_iva: 0,
+          porcentaje_descuento: 0.0,
+          base_cero: subtotal0,
+          base_gravable: 0.0,
+          base_no_gravable: 0.0,
+        },
+      ],
+      cobros: buildCobrosPayload(datos, total, hoy, tipoPing),
+    }
+
+    try {
+      const response = await contificoFetch('/documento/', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }) as Record<string, unknown>
+
+      if (formaCobro === 'TC') {
+        console.info('[contifico] cobro.tc_registrado', {
+          compraId: datos.compraId,
+          tipoPing,
+          documentoId: String(response.id ?? ''),
+        })
+      }
+
+      return {
+        documento_id: String(response.id ?? ''),
+        autorizacion: String(response.autorizacion ?? ''),
+        numero_documento: String(response.documento ?? ''),
+      }
+    } catch (error) {
+      lastError = error
+      if (formaCobro === 'TC' && shouldRetryWithAnotherTipoPing(error)) {
+        console.warn('[contifico] cobro.tc_tipo_ping_rechazado', {
+          compraId: datos.compraId,
+          tipoPing,
+          error: error instanceof Error ? error.message : String(error),
+        })
+        continue
+      }
+      throw error
+    }
   }
+
+  throw lastError instanceof Error ? lastError : new Error('No se pudo registrar el cobro en Contifico.')
 }

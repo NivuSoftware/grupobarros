@@ -55,6 +55,8 @@ services:
     restart: unless-stopped
     ports:
       - "127.0.0.1:8080:80"     # solo accesible desde el host (Nginx)
+    volumes:
+      - uploads_data:/usr/share/nginx/html/uploads
     depends_on:
       - backend
     networks:

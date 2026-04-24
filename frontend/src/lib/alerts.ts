@@ -17,6 +17,8 @@ const toast = Swal.mixin({
   timer: 3000,
   timerProgressBar: true,
   customClass: commonClasses,
+  color: "#111111",
+  background: "#ffffff",
 });
 
 export function getErrorMessage(error: unknown, fallback = "Ocurrió un error") {
@@ -63,6 +65,8 @@ export async function confirmAction({
     focusCancel: true,
     customClass: commonClasses,
     buttonsStyling: false,
+    color: "#111111",
+    background: "#ffffff",
   });
 
   return result.isConfirmed;

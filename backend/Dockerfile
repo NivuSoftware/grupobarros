@@ -26,6 +26,8 @@ RUN npm ci --omit=dev --prefer-offline
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/next.config.* ./
+COPY --from=builder /app/scripts ./scripts
+COPY --from=builder /app/db ./db
 
 EXPOSE 3001
 

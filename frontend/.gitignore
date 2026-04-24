@@ -12,6 +12,12 @@ dist
 dist-ssr
 *.local
 
+# Env local (nunca al repo — solo .env.production se versiona)
+.env
+.env.local
+.env.development
+.env.development.local
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

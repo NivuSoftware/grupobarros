@@ -26,8 +26,7 @@ export async function POST(req: NextRequest) {
     const buffer = Buffer.from(await file.arrayBuffer())
     await writeFile(join(uploadDir, filename), buffer)
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `http://localhost:3001`
-    return ok({ url: `${baseUrl}/uploads/${filename}` })
+    return ok({ url: `/uploads/${filename}` })
   } catch (e) {
     return handleError(e)
   }

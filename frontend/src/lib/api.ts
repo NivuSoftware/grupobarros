@@ -1,6 +1,8 @@
 import { getAccessToken } from "./auth";
 
-const rawApiUrl = (import.meta.env.VITE_API_URL || "http://localhost:3001").replace(/\/+$/, "");
+// En producción Nginx proxea /api/ al backend → BASE queda vacío ("")
+// En dev apunta a localhost:3001 via VITE_API_URL
+const rawApiUrl = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
 const BASE = rawApiUrl.endsWith("/api") ? rawApiUrl.slice(0, -4) : rawApiUrl;
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {

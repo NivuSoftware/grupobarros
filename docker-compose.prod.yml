@@ -1,0 +1,64 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: barros-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-grupobarros}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - barros-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    container_name: barros-backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=postgres
+    ports:
+      - "127.0.0.1:3001:3001"   # solo accesible desde el host (Nginx)
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - barros-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3001/api/sorteos?estado=ACTIVO || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: production
+    container_name: barros-frontend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:80"     # solo accesible desde el host (Nginx)
+    depends_on:
+      - backend
+    networks:
+      - barros-network
+
+volumes:
+  postgres_data:
+
+networks:
+  barros-network:
+    driver: bridge

@@ -20,6 +20,14 @@ echo "▶ [1/7] Instalando dependencias del sistema..."
 apt-get update -qq
 apt-get install -y -qq nginx certbot python3-certbot-nginx curl
 
+# Instalar Docker si no está
+if ! command -v docker &>/dev/null; then
+    echo "  Instalando Docker..."
+    curl -fsSL https://get.docker.com | sh
+    systemctl enable docker
+    systemctl start docker
+fi
+
 # ── 2. Carpeta para certbot http-challenge ───────────────────────────────────
 mkdir -p /var/www/certbot
 
@@ -43,6 +51,24 @@ if [ ! -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]; then
     echo "  ✅ Certificado SSL instalado"
 else
     echo "  ℹ️  Certificado ya existe, saltando..."
+fi
+
+# Crear options-ssl-nginx.conf si certbot certonly no lo generó
+if [ ! -f "/etc/letsencrypt/options-ssl-nginx.conf" ]; then
+    echo "  Creando options-ssl-nginx.conf..."
+    cat > /etc/letsencrypt/options-ssl-nginx.conf <<'EOF'
+ssl_session_cache shared:le_nginx_SSL:10m;
+ssl_session_timeout 1440m;
+ssl_session_tickets off;
+ssl_protocols TLSv1.2 TLSv1.3;
+ssl_prefer_server_ciphers off;
+ssl_ciphers "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256";
+EOF
+fi
+
+if [ ! -f "/etc/letsencrypt/ssl-dhparams.pem" ]; then
+    echo "  Generando ssl-dhparams.pem (puede tardar ~30s)..."
+    openssl dhparam -out /etc/letsencrypt/ssl-dhparams.pem 2048 2>/dev/null
 fi
 
 # ── 5. Nginx HTTPS (configuración completa) ──────────────────────────────────

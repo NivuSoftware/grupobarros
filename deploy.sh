@@ -23,9 +23,9 @@ apt-get install -y -qq nginx certbot python3-certbot-nginx curl
 # ── 2. Carpeta para certbot http-challenge ───────────────────────────────────
 mkdir -p /var/www/certbot
 
-# ── 3. Nginx HTTP (solo para challenge) ─────────────────────────────────────
-echo "▶ [2/7] Configurando Nginx (HTTP)..."
-cp "$PROJECT_DIR/nginx/$DOMAIN.conf" /etc/nginx/sites-available/$DOMAIN
+# ── 3. Nginx HTTP-only (para certbot challenge) ──────────────────────────────
+echo "▶ [2/7] Configurando Nginx (HTTP temporal para certbot)..."
+cp "$PROJECT_DIR/nginx/$DOMAIN.http.conf" /etc/nginx/sites-available/$DOMAIN
 ln -sf /etc/nginx/sites-available/$DOMAIN /etc/nginx/sites-enabled/$DOMAIN
 rm -f /etc/nginx/sites-enabled/default
 
@@ -34,13 +34,13 @@ nginx -t && systemctl reload nginx
 # ── 4. Certificado SSL con Certbot ───────────────────────────────────────────
 echo "▶ [3/7] Obteniendo certificado SSL..."
 if [ ! -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]; then
-    certbot --nginx \
+    certbot certonly --webroot \
+        -w /var/www/certbot \
         -d "$DOMAIN" \
         -d "www.$DOMAIN" \
         --non-interactive \
         --agree-tos \
-        --email admin@$DOMAIN \
-        --redirect
+        --email admin@$DOMAIN
     echo "  ✅ Certificado SSL instalado"
 else
     echo "  ℹ️  Certificado ya existe, saltando..."

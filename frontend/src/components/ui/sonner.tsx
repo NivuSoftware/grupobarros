@@ -7,17 +7,13 @@ const Toaster = ({ ...props }: ToasterProps) => {
     <Sonner
       theme="dark"
       className="toaster group"
-      style={
-        {
-          "--normal-bg": "#1c1c1e",
-          "--normal-text": "#f5f5f5",
-          "--normal-border": "#3a3a3c",
-          "--error-bg": "#2a1a1a",
-          "--error-text": "#f5f5f5",
-          "--success-bg": "#1a2a1a",
-          "--success-text": "#f5f5f5",
-        } as React.CSSProperties
-      }
+      toastOptions={{
+        style: {
+          background: "#1c1c1e",
+          color: "#f5f5f5",
+          border: "1px solid #3a3a3c",
+        },
+      }}
       {...props}
     />
   );

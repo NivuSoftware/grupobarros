@@ -14,7 +14,7 @@ export const CompraSchema = z.object({
   cantidadBoletos: z.number().int().min(1, 'Debes comprar al menos 1 boleto'),
   comprador: CompradorSchema,
   metodoPago: z.enum(['TARJETA', 'TRANSFERENCIA']).default('TARJETA'),
-  comprobanteUrl: z.string().url('URL de comprobante inválida').optional(),
+  comprobanteUrl: z.string().min(1).optional(),
 })
 
 export const ValidarCompraSchema = z.object({

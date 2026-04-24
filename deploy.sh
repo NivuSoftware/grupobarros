@@ -37,7 +37,6 @@ if [ ! -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]; then
     certbot certonly --webroot \
         -w /var/www/certbot \
         -d "$DOMAIN" \
-        -d "www.$DOMAIN" \
         --non-interactive \
         --agree-tos \
         --email admin@$DOMAIN

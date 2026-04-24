@@ -1,4 +1,4 @@
-const rawApiUrl = (import.meta.env.VITE_API_URL || "http://localhost:3001").replace(/\/+$/, "");
+const rawApiUrl = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
 const apiBaseUrl = rawApiUrl.endsWith("/api") ? rawApiUrl.slice(0, -4) : rawApiUrl;
 
 const ACCESS_TOKEN_KEY = "grupobarros_access_token";

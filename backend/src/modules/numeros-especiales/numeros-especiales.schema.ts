@@ -8,7 +8,7 @@ export const NumeroEspecialSchema = z.object({
   color: NumeroEspecialColorSchema.optional(),
   nombrePremio: z.string().max(100).optional(),
   descripcion: z.string().max(500).optional(),
-  imagen: z.string().url().optional(),
+  imagen: z.string().min(1).optional(),
 })
 
 export const EditarNumeroEspecialSchema = z.object({
@@ -16,7 +16,7 @@ export const EditarNumeroEspecialSchema = z.object({
   color: NumeroEspecialColorSchema.optional(),
   nombrePremio: z.string().max(100).optional(),
   descripcion: z.string().max(500).optional(),
-  imagen: z.string().url().optional(),
+  imagen: z.string().min(1).optional(),
 })
 
 export type NumeroEspecialDto = z.infer<typeof NumeroEspecialSchema>

@@ -38,6 +38,7 @@ async function uploadFile(file: File): Promise<string> {
 
 export type EstadoSorteo = "DRAFT" | "ACTIVO" | "CERRADO";
 export type TipoNumeroEspecial = "ORO" | "NARANJA";
+export type NumeroEspecialColor = "ORANGE" | "BLACK" | "GREEN" | "BLUE" | "RED";
 
 export interface Sorteo {
   id: string;
@@ -60,6 +61,7 @@ export interface NumeroEspecial {
   sorteo_id: string;
   numero: number;
   tipo: TipoNumeroEspecial;
+  color?: NumeroEspecialColor | null;
   nombre_premio?: string;
   descripcion?: string;
   imagen?: string;
@@ -230,6 +232,7 @@ export const neApi = {
   agregar: (sorteoId: string, body: {
     numero: number;
     tipo: TipoNumeroEspecial;
+    color?: NumeroEspecialColor;
     nombrePremio?: string;
     descripcion?: string;
     imagen?: string;
@@ -241,6 +244,7 @@ export const neApi = {
 
   editar: (sorteoId: string, neId: string, body: {
     numero?: number;
+    color?: NumeroEspecialColor;
     nombrePremio?: string;
     descripcion?: string;
     imagen?: string;

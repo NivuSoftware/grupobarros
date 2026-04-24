@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
-import { ArrowRight, Bell, ChevronLeft, ChevronRight, Flame, Sparkles } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight, Flame, Sparkles } from "lucide-react";
 import heroBg from "@/assets/hero.jpeg";
 import { ProgressBar } from "../ProgressBar";
 import type { SorteoActivoData } from "@/lib/useSorteoActivo";
@@ -112,17 +112,18 @@ export const Hero = ({ sorteoData, loading }: Props) => {
             </p>
 
             <div className="mt-4 text-base text-foreground/50">
-              Mientras tanto, revisa cómo funcionamos y lo que dicen nuestros ganadores.
+              Mientras tanto, revisa cómo funcionamos mientras anunciamos nuestro próximo sorteo.
             </div>
 
             <div className="mt-10 flex flex-col sm:flex-row justify-center gap-3">
-              <a
+              {/* CTA de ganadores oculta temporalmente */}
+              {/* <a
                 href="#ganadores"
                 className="inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full border border-primary/40 text-foreground hover:bg-primary/10 hover:border-primary transition-all backdrop-blur-md font-medium"
               >
                 <Bell className="w-4 h-4 text-primary" />
                 Ver ganadores anteriores
-              </a>
+              </a> */}
               <a
                 href="#como-funciona"
                 className="inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full bg-secondary/60 border border-border text-foreground/70 hover:text-foreground transition-colors font-medium"

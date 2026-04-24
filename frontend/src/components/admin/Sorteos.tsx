@@ -2,7 +2,19 @@ import { useEffect, useState } from "react";
 import { Plus, Pencil, Rocket, X, ChevronDown, ChevronUp, Trash2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { confirmAction, getErrorMessage, notifyError, notifySuccess } from "@/lib/alerts";
-import { sorteoApi, neApi, type Sorteo, type NumeroEspecial, type TipoNumeroEspecial } from "@/lib/api";
+import {
+  sorteoApi,
+  neApi,
+  type Sorteo,
+  type NumeroEspecial,
+  type TipoNumeroEspecial,
+  type NumeroEspecialColor,
+} from "@/lib/api";
+import {
+  getNumeroEspecialBadgeLabel,
+  getNumeroEspecialColorTheme,
+  NUMERO_ESPECIAL_COLOR_OPTIONS,
+} from "@/lib/numeroEspecialTheme";
 import ImageUpload from "./ImageUpload";
 
 export default function Sorteos() {
@@ -390,9 +402,10 @@ function NumeroEspecialRow({
   const [numero, setNumero] = useState(ne.numero >= 0 ? String(ne.numero) : "");
   const [nombrePremio, setNombrePremio] = useState(ne.nombre_premio ?? "");
   const [imagen, setImagen] = useState<string | undefined>(ne.imagen);
+  const [color, setColor] = useState<NumeroEspecialColor>(ne.color ?? "ORANGE");
   const [saving, setSaving] = useState(false);
 
-  const tipoColor = ne.tipo === "ORO" ? "text-yellow-400" : "text-orange-400";
+  const colorTheme = ne.tipo === "NARANJA" ? getNumeroEspecialColorTheme(color) : null;
   const isPH = ne.numero < 0;
 
   const handleSave = async () => {
@@ -402,6 +415,7 @@ function NumeroEspecialRow({
         numero: Number(numero),
         nombrePremio: nombrePremio || undefined,
         imagen: imagen || undefined,
+        color: ne.tipo === "NARANJA" ? color : undefined,
       });
       onReload();
       setEditing(false);
@@ -432,7 +446,16 @@ function NumeroEspecialRow({
       {editing ? (
         <div className="space-y-3">
           <div className="flex items-center gap-3 flex-wrap">
-            <span className={`font-bold text-xs uppercase ${tipoColor}`}>{ne.tipo}</span>
+            {ne.tipo === "ORO" ? (
+              <span className="font-bold text-xs uppercase text-yellow-400">{ne.tipo}</span>
+            ) : (
+              <span
+                className="rounded-full border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.18em]"
+                style={{ color: colorTheme?.accent, borderColor: colorTheme?.accentSoft, background: colorTheme?.cardBackground }}
+              >
+                {getNumeroEspecialBadgeLabel(ne.tipo, color)}
+              </span>
+            )}
             <input
               type="number" value={numero} onChange={(e) => setNumero(e.target.value)}
               placeholder="Número" min={0} max={sorteo.numero_maximo_boletos}
@@ -443,6 +466,17 @@ function NumeroEspecialRow({
               placeholder="Nombre del premio (opcional)"
               className="flex-1 min-w-0 rounded border border-primary/30 bg-background px-2 py-1 text-xs"
             />
+            {ne.tipo === "NARANJA" && (
+              <select
+                value={color}
+                onChange={(e) => setColor(e.target.value as NumeroEspecialColor)}
+                className="rounded border border-primary/30 bg-background px-2 py-1 text-xs"
+              >
+                {NUMERO_ESPECIAL_COLOR_OPTIONS.map((option) => (
+                  <option key={option.key} value={option.key}>{option.adminLabel}</option>
+                ))}
+              </select>
+            )}
           </div>
           <ImageUpload value={imagen} onChange={setImagen} label="Imagen del premio (opcional)" />
           <div className="flex gap-2">
@@ -456,7 +490,20 @@ function NumeroEspecialRow({
         </div>
       ) : (
         <div className="flex items-center gap-3 flex-wrap">
-          <span className={`font-bold text-xs uppercase ${tipoColor}`}>{ne.tipo}</span>
+          {ne.tipo === "ORO" ? (
+            <span className="font-bold text-xs uppercase text-yellow-400">{ne.tipo}</span>
+          ) : (
+            <span
+              className="rounded-full border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.18em]"
+              style={{
+                color: getNumeroEspecialColorTheme(ne.color).accent,
+                borderColor: getNumeroEspecialColorTheme(ne.color).accentSoft,
+                background: getNumeroEspecialColorTheme(ne.color).cardBackground,
+              }}
+            >
+              {getNumeroEspecialBadgeLabel(ne.tipo, ne.color)}
+            </span>
+          )}
           {ne.imagen && (
             <img src={ne.imagen} alt="" className="h-8 w-8 rounded object-cover border border-primary/20" />
           )}
@@ -493,6 +540,7 @@ function AddNumeroEspecialForm({
 }) {
   const [numero, setNumero] = useState("");
   const [tipo, setTipo] = useState<TipoNumeroEspecial>("ORO");
+  const [color, setColor] = useState<NumeroEspecialColor>("ORANGE");
   const [nombrePremio, setNombrePremio] = useState("");
   const [imagen, setImagen] = useState<string | undefined>();
   const [saving, setSaving] = useState(false);
@@ -506,6 +554,7 @@ function AddNumeroEspecialForm({
       await neApi.agregar(sorteoId, {
         numero: Number(numero),
         tipo,
+        color: tipo === "NARANJA" ? color : undefined,
         nombrePremio: nombrePremio || undefined,
         imagen: imagen || undefined,
       });
@@ -534,6 +583,17 @@ function AddNumeroEspecialForm({
           <option value="ORO">ORO</option>
           <option value="NARANJA">NARANJA</option>
         </select>
+        {tipo === "NARANJA" && (
+          <select
+            value={color}
+            onChange={(e) => setColor(e.target.value as NumeroEspecialColor)}
+            className="rounded border border-primary/30 bg-background px-3 py-2 text-sm"
+          >
+            {NUMERO_ESPECIAL_COLOR_OPTIONS.map((option) => (
+              <option key={option.key} value={option.key}>{option.adminLabel}</option>
+            ))}
+          </select>
+        )}
         <input
           type="text" value={nombrePremio} onChange={(e) => setNombrePremio(e.target.value)}
           placeholder="Nombre del premio (opcional)"

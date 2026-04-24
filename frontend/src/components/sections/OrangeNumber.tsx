@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Flame, Zap } from "lucide-react";
 import type { SorteoActivoData } from "@/lib/useSorteoActivo";
 import type { NumeroEspecial } from "@/lib/api";
+import { getNumeroEspecialColorTheme } from "@/lib/numeroEspecialTheme";
 
 interface Props {
   sorteoData: SorteoActivoData | null;
@@ -12,13 +13,17 @@ export const OrangeNumber = ({ sorteoData, loading }: Props) => {
   const orangeNe: NumeroEspecial[] = sorteoData
     ? sorteoData.ne.filter((n) => n.tipo === "NARANJA" && n.numero >= 0)
     : [];
+  const primaryTheme = getNumeroEspecialColorTheme(orangeNe[0]?.color);
 
   if (!loading && orangeNe.length === 0) return null;
 
   return (
     <section id="numero-naranja" className="relative py-20 sm:py-28 overflow-hidden">
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full bg-orange-500/10 blur-[120px]" />
+        <div
+          className="absolute top-1/2 left-1/2 h-[800px] w-[800px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-[120px]"
+          style={{ background: primaryTheme.accentGlow }}
+        />
       </div>
 
       <div className="container relative">
@@ -32,12 +37,12 @@ export const OrangeNumber = ({ sorteoData, loading }: Props) => {
           <div
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-white text-xs font-bold tracking-[0.25em] uppercase mb-5 shadow-lg"
             style={{
-              background: "linear-gradient(135deg, hsl(20 95% 55%) 0%, hsl(35 95% 60%) 100%)",
-              boxShadow: "0 0 40px hsl(25 95% 55% / 0.5)",
+              background: primaryTheme.chipBackground ?? `linear-gradient(135deg, ${primaryTheme.accentStrong} 0%, ${primaryTheme.accent} 100%)`,
+              boxShadow: `0 0 40px ${primaryTheme.accentGlow}`,
             }}
           >
             <Flame className="w-4 h-4" />
-            {orangeNe.length > 1 ? "Números Naranja" : "Número Naranja"}
+            {orangeNe.length > 1 ? primaryTheme.badgePlural : primaryTheme.badgeSingular}
           </div>
 
           {loading ? (
@@ -45,21 +50,21 @@ export const OrangeNumber = ({ sorteoData, loading }: Props) => {
           ) : (
             <h2 className="font-display text-4xl sm:text-5xl md:text-6xl font-extrabold leading-tight">
               {orangeNe.length > 1 ? (
-                <>Los <span style={{ color: "hsl(25 95% 60%)" }}>Naranjas</span> ganan{" "}
+                <>Los <span style={{ color: primaryTheme.accent }}>{primaryTheme.badgePlural}</span> ganan{" "}
                   <span className="text-gold-gradient">premios especiales</span></>
               ) : orangeNe[0]?.nombre_premio ? (
-                <>El <span style={{ color: "hsl(25 95% 60%)" }}>Naranja</span> gana{" "}
+                <>El <span style={{ color: primaryTheme.accent }}>{primaryTheme.badgeSingular}</span> gana{" "}
                   <span className="text-gold-gradient">{orangeNe[0].nombre_premio}</span></>
               ) : (
-                <>El <span style={{ color: "hsl(25 95% 60%)" }}>Naranja</span> se lleva un{" "}
+                <>El <span style={{ color: primaryTheme.accent }}>{primaryTheme.badgeSingular}</span> se lleva un{" "}
                   <span className="text-gold-gradient">premio especial</span></>
               )}
             </h2>
           )}
           <p className="mt-4 text-foreground/70">
             {orangeNe.length > 1
-              ? "Estos números marcados en naranja ganan premios especiales al instante."
-              : "Un único número marcado en naranja gana un premio especial al instante."}
+              ? `Estos ${primaryTheme.badgePlural.toLowerCase()} ganan premios especiales al instante.`
+              : `Un único ${primaryTheme.badgeSingular.toLowerCase()} gana un premio especial al instante.`}
           </p>
         </motion.div>
 
@@ -69,6 +74,7 @@ export const OrangeNumber = ({ sorteoData, loading }: Props) => {
           <div className="space-y-8 max-w-4xl mx-auto">
             {orangeNe.map((item, i) => {
               const ganado = item.es_ganador;
+              const itemTheme = getNumeroEspecialColorTheme(item.color);
               return (
                 <motion.div
                   key={item.id}
@@ -79,7 +85,7 @@ export const OrangeNumber = ({ sorteoData, loading }: Props) => {
                   className={`relative rounded-3xl overflow-hidden border-2 shadow-luxury transition-all ${
                     ganado ? "opacity-60 grayscale border-zinc-600/30" : ""
                   }`}
-                  style={ganado ? {} : { borderColor: "hsl(25 95% 55% / 0.4)" }}
+                  style={ganado ? {} : { borderColor: itemTheme.accentSoft }}
                 >
                   <div className="grid md:grid-cols-2 bg-card">
                     {/* Image (if available) */}
@@ -93,7 +99,7 @@ export const OrangeNumber = ({ sorteoData, loading }: Props) => {
                         />
                         <div
                           className="absolute inset-0 mix-blend-overlay opacity-40"
-                          style={{ background: "linear-gradient(135deg, hsl(25 95% 55%), transparent)" }}
+                          style={{ background: itemTheme.imageOverlay }}
                         />
                         {ganado && (
                           <div className="absolute inset-0 flex items-center justify-center bg-card/70">
@@ -107,11 +113,11 @@ export const OrangeNumber = ({ sorteoData, loading }: Props) => {
                       /* Sin imagen: bloque de número grande */
                       <div
                         className="relative aspect-[4/3] md:aspect-auto overflow-hidden flex items-center justify-center"
-                        style={{ background: ganado ? "hsl(0 0% 10%)" : "linear-gradient(135deg, hsl(20 95% 55% / 0.15), hsl(35 95% 60% / 0.05))" }}
+                        style={{ background: ganado ? "hsl(0 0% 10%)" : itemTheme.cardBackground }}
                       >
                         <p className={`font-display text-8xl font-extrabold leading-none select-none ${
                           ganado ? "line-through text-zinc-600" : ""
-                        }`} style={ganado ? {} : { color: "hsl(25 95% 60%)" }}>
+                        }`} style={ganado ? {} : { color: itemTheme.numberColor ?? itemTheme.accent, textShadow: itemTheme.numberGlow }}>
                           {String(item.numero).padStart(4, "0")}
                         </p>
                         {ganado && (
@@ -129,17 +135,17 @@ export const OrangeNumber = ({ sorteoData, loading }: Props) => {
                       {!ganado && (
                         <div
                           className="absolute top-6 right-6 w-20 h-20 rounded-full blur-2xl"
-                          style={{ background: "hsl(25 95% 55% / 0.4)" }}
+                          style={{ background: itemTheme.accentGlow }}
                         />
                       )}
-                      <p className="text-xs uppercase tracking-[0.3em] mb-2" style={{ color: "hsl(25 95% 60%)" }}>
-                        Premio Naranja
+                      <p className="text-xs uppercase tracking-[0.3em] mb-2" style={{ color: itemTheme.numberColor ?? itemTheme.accent }}>
+                        {itemTheme.badgeSingular}
                       </p>
 
                       {/* Número (siempre visible) */}
                       <p className={`font-display text-5xl font-extrabold mb-3 ${
                         ganado ? "line-through text-zinc-500" : ""
-                      }`} style={ganado ? {} : { color: "hsl(25 95% 60%)" }}>
+                      }`} style={ganado ? {} : { color: itemTheme.numberColor ?? itemTheme.accent, textShadow: itemTheme.numberGlow }}>
                         {String(item.numero).padStart(4, "0")}
                       </p>
 
@@ -160,9 +166,9 @@ export const OrangeNumber = ({ sorteoData, loading }: Props) => {
                       ) : (
                         <div
                           className="flex items-center justify-center gap-3 p-4 rounded-2xl bg-secondary/60 border mt-2"
-                          style={{ borderColor: "hsl(25 95% 55% / 0.3)" }}
+                          style={{ borderColor: itemTheme.accentSoft }}
                         >
-                          <Zap className="w-5 h-5 flex-shrink-0" style={{ color: "hsl(25 95% 60%)" }} />
+                          <Zap className="w-5 h-5 flex-shrink-0" style={{ color: itemTheme.accent }} />
                           <p className="text-sm text-foreground/80">
                             ¿Te salió el numero? <span className="font-semibold text-foreground">envianos un mensaje</span>, y reclama tu premio!
                           </p>

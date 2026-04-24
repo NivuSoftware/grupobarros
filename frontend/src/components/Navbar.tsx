@@ -35,7 +35,8 @@ export const Navbar = ({ sorteoData, loading }: NavbarProps) => {
         <nav className="hidden md:flex items-center gap-10 text-base tracking-wide text-foreground/70">
           <a href="#numeros-oro" className="hover:text-primary transition-colors">Números de Oro</a>
           <a href="#packs" className="hover:text-primary transition-colors">Packs</a>
-          <a href="#ganadores" className="hover:text-primary transition-colors">Ganadores</a>
+          {/* Enlace a ganadores oculto temporalmente */}
+          {/* <a href="#ganadores" className="hover:text-primary transition-colors">Ganadores</a> */}
           <a href="#como-funciona" className="hover:text-primary transition-colors">Cómo Funciona</a>
         </nav>
         <a

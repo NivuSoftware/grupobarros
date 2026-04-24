@@ -35,10 +35,7 @@ export const Footer = () => {
                 ))}
               </div>
 
-              <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-background/70 px-4 py-2 text-xs uppercase tracking-[0.22em] text-primary/85">
-                <Shield className="h-3.5 w-3.5" />
-                Pagos protegidos · SSL 256-bit
-              </div>
+              
             </div>
           </div>
 
@@ -47,7 +44,8 @@ export const Footer = () => {
             <ul className="mt-5 space-y-3 text-sm text-muted-foreground">
               <li><a href="/#premios" className="transition-colors hover:text-primary">Premios</a></li>
               <li><a href="/#packs" className="transition-colors hover:text-primary">Packs</a></li>
-              <li><a href="/#ganadores" className="transition-colors hover:text-primary">Ganadores</a></li>
+              {/* Enlace a ganadores oculto temporalmente */}
+              {/* <li><a href="/#ganadores" className="transition-colors hover:text-primary">Ganadores</a></li> */}
               <li><a href="/#como-funciona" className="transition-colors hover:text-primary">Cómo funciona</a></li>
               <li><Link to="/terminos-y-condiciones" className="transition-colors hover:text-primary">Términos y Condiciones</Link></li>
             </ul>

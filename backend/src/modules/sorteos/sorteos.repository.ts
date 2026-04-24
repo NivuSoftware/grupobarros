@@ -132,7 +132,35 @@ export async function setPremioMayorGanador(
 }
 
 export async function deleteSorteo(id: string) {
-  await pool.query('DELETE FROM sorteos WHERE id = $1', [id])
+  const client = await pool.connect()
+  try {
+    await client.query('BEGIN')
+    // Desvincular boleto ganador de números especiales
+    await client.query(
+      `UPDATE numeros_especiales SET boleto_ganador_id = NULL WHERE sorteo_id = $1`,
+      [id],
+    )
+    // Desvincular premio mayor del sorteo
+    await client.query(
+      `UPDATE sorteos SET premio_mayor_boleto_id = NULL WHERE id = $1`,
+      [id],
+    )
+    // Desvincular número especial de boletos
+    await client.query(
+      `UPDATE boletos SET numero_especial_id = NULL WHERE sorteo_id = $1`,
+      [id],
+    )
+    await client.query(`DELETE FROM numeros_especiales WHERE sorteo_id = $1`, [id])
+    await client.query(`DELETE FROM boletos WHERE sorteo_id = $1`, [id])
+    await client.query(`DELETE FROM compras WHERE sorteo_id = $1`, [id])
+    await client.query(`DELETE FROM sorteos WHERE id = $1`, [id])
+    await client.query('COMMIT')
+  } catch (e) {
+    await client.query('ROLLBACK')
+    throw e
+  } finally {
+    client.release()
+  }
 }
 
 export async function verificarCierreAutomatico(

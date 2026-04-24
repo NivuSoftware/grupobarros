@@ -9,6 +9,7 @@
     "lint": "next lint",
     "migrate:auth": "node scripts/migrate-auth.js",
     "migrate:rifas": "node scripts/migrate-rifas.js",
+    "migrate:ne-color": "node scripts/migrate-ne-color.js",
     "user:create": "node scripts/create-user.js"
   },
   "dependencies": {

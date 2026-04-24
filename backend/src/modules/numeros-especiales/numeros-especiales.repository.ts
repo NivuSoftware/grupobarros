@@ -42,22 +42,22 @@ export async function crearNumerosEspecialesDefault(
 ) {
   // Placeholders con números negativos únicos (-1..-6) para evitar violar unique(sorteo_id, numero)
   // El admin DEBE asignar números reales (>=0) antes de publicar el sorteo
-  const entries: Array<[number, string]> = [
-    [-1, 'ORO'], [-2, 'ORO'], [-3, 'ORO'], [-4, 'ORO'], [-5, 'ORO'],
-    [-6, 'NARANJA'],
+  const entries: Array<[number, string, string | null]> = [
+    [-1, 'ORO', null], [-2, 'ORO', null], [-3, 'ORO', null], [-4, 'ORO', null], [-5, 'ORO', null],
+    [-6, 'NARANJA', 'ORANGE'],
   ]
 
   const values: unknown[] = []
   const placeholders: string[] = []
   let i = 1
 
-  for (const [numero, tipo] of entries) {
-    placeholders.push(`($${i++}, $${i++}, $${i++})`)
-    values.push(sorteoId, numero, tipo)
+  for (const [numero, tipo, color] of entries) {
+    placeholders.push(`($${i++}, $${i++}, $${i++}, $${i++})`)
+    values.push(sorteoId, numero, tipo, color)
   }
 
   await client.query(
-    `INSERT INTO numeros_especiales (sorteo_id, numero, tipo)
+    `INSERT INTO numeros_especiales (sorteo_id, numero, tipo, color)
      VALUES ${placeholders.join(', ')}`,
     values,
   )
@@ -65,9 +65,9 @@ export async function crearNumerosEspecialesDefault(
 
 export async function createNumeroEspecial(sorteoId: string, data: NumeroEspecialDto) {
   const { rows } = await pool.query(
-    `INSERT INTO numeros_especiales (sorteo_id, numero, tipo, nombre_premio, descripcion, imagen)
-     VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
-    [sorteoId, data.numero, data.tipo, data.nombrePremio ?? null, data.descripcion ?? null, data.imagen ?? null],
+    `INSERT INTO numeros_especiales (sorteo_id, numero, tipo, color, nombre_premio, descripcion, imagen)
+     VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+    [sorteoId, data.numero, data.tipo, data.color ?? null, data.nombrePremio ?? null, data.descripcion ?? null, data.imagen ?? null],
   )
   return rows[0]
 }
@@ -78,6 +78,7 @@ export async function updateNumeroEspecial(id: string, data: EditarNumeroEspecia
   let i = 1
 
   if (data.numero !== undefined)       { fields.push(`numero = $${i++}`);        values.push(data.numero) }
+  if (data.color !== undefined)        { fields.push(`color = $${i++}`);         values.push(data.color) }
   if (data.nombrePremio !== undefined) { fields.push(`nombre_premio = $${i++}`); values.push(data.nombrePremio) }
   if (data.descripcion !== undefined)  { fields.push(`descripcion = $${i++}`);   values.push(data.descripcion) }
   if (data.imagen !== undefined)       { fields.push(`imagen = $${i++}`);        values.push(data.imagen) }

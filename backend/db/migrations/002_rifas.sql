@@ -104,6 +104,7 @@ CREATE TABLE numeros_especiales (
   sorteo_id             UUID                 NOT NULL REFERENCES sorteos(id),
   numero                INTEGER              NOT NULL,  -- negativos = placeholder, >= 0 = número real
   tipo                  tipo_numero_especial NOT NULL,
+  color                 VARCHAR(20),
   nombre_premio         VARCHAR(100),
   descripcion           TEXT,
   imagen                TEXT,
@@ -115,7 +116,8 @@ CREATE TABLE numeros_especiales (
   actualizado_en        TIMESTAMPTZ          NOT NULL DEFAULT NOW(),
 
   -- Un número no puede repetirse en el mismo sorteo
-  CONSTRAINT uq_numero_especial_sorteo UNIQUE (sorteo_id, numero)
+  CONSTRAINT uq_numero_especial_sorteo UNIQUE (sorteo_id, numero),
+  CONSTRAINT ck_ne_color CHECK (color IS NULL OR color IN ('ORANGE', 'BLACK', 'GREEN', 'BLUE', 'RED'))
 );
 
 CREATE INDEX idx_ne_sorteo_id ON numeros_especiales (sorteo_id);

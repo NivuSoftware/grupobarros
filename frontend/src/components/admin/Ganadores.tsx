@@ -3,6 +3,7 @@ import { Eye, EyeOff, Search, ShieldCheck, Trophy, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getErrorMessage, notifyError, notifySuccess } from "@/lib/alerts";
 import { sorteoApi, neApi, ganadoresApi, boletoApi, type Boleto, type Sorteo, type NumeroEspecial } from "@/lib/api";
+import { getNumeroEspecialBadgeLabel, getNumeroEspecialColorTheme } from "@/lib/numeroEspecialTheme";
 
 type GanadorMarcadoResult = {
   boleto: Boleto;
@@ -335,14 +336,26 @@ function NumeroEspecialGanadorRow({
     finally { setSaving(false); }
   };
 
-  const tipoColor = ne.tipo === "ORO" ? "text-yellow-400" : "text-orange-400";
   const isPH = ne.numero < 0;
   const ganadorActual = ganador ?? getGanadorFromNumeroEspecial(ne);
 
   if (isPH) {
     return (
       <div className="flex items-center gap-3 rounded-md bg-background/70 px-4 py-3 text-sm text-muted-foreground italic">
-        <span className={`text-xs font-bold uppercase ${tipoColor}`}>{ne.tipo}</span>
+        {ne.tipo === "ORO" ? (
+          <span className="text-xs font-bold uppercase text-yellow-400">{ne.tipo}</span>
+        ) : (
+          <span
+            className="rounded-full border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.18em]"
+            style={{
+              color: getNumeroEspecialColorTheme(ne.color).accent,
+              borderColor: getNumeroEspecialColorTheme(ne.color).accentSoft,
+              background: getNumeroEspecialColorTheme(ne.color).cardBackground,
+            }}
+          >
+            {getNumeroEspecialBadgeLabel(ne.tipo, ne.color)}
+          </span>
+        )}
         Sin número configurado — edita este número especial en la sección Sorteos.
       </div>
     );
@@ -351,7 +364,20 @@ function NumeroEspecialGanadorRow({
   return (
     <div className="rounded-md bg-background/70 px-4 py-3">
       <div className="flex items-center gap-3 mb-2 flex-wrap">
-        <span className={`text-xs font-bold uppercase ${tipoColor}`}>{ne.tipo}</span>
+        {ne.tipo === "ORO" ? (
+          <span className="text-xs font-bold uppercase text-yellow-400">{ne.tipo}</span>
+        ) : (
+          <span
+            className="rounded-full border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.18em]"
+            style={{
+              color: getNumeroEspecialColorTheme(ne.color).accent,
+              borderColor: getNumeroEspecialColorTheme(ne.color).accentSoft,
+              background: getNumeroEspecialColorTheme(ne.color).cardBackground,
+            }}
+          >
+            {getNumeroEspecialBadgeLabel(ne.tipo, ne.color)}
+          </span>
+        )}
         <span className="font-mono font-semibold">{String(ne.numero).padStart(4, "0")}</span>
         {ne.nombre_premio && <span className="text-sm text-muted-foreground">{ne.nombre_premio}</span>}
         {ne.es_ganador && (

@@ -8,7 +8,15 @@ import {
   updateNumeroEspecial,
   deleteNumeroEspecial,
 } from './numeros-especiales.repository'
-import type { NumeroEspecialDto, EditarNumeroEspecialDto } from './numeros-especiales.schema'
+import type { NumeroEspecialColor, NumeroEspecialDto, EditarNumeroEspecialDto } from './numeros-especiales.schema'
+
+function resolveNumeroEspecialColor(
+  tipo: 'ORO' | 'NARANJA',
+  color?: NumeroEspecialColor,
+) {
+  if (tipo !== 'NARANJA') return undefined
+  return color ?? 'ORANGE'
+}
 
 export async function listarNumerosEspeciales(sorteoId: string) {
   const sorteo = await findSorteoById(sorteoId)
@@ -30,7 +38,10 @@ export async function agregarNumeroEspecial(sorteoId: string, data: NumeroEspeci
   const existente = await findNumeroEspecialByNumero(sorteoId, data.numero)
   if (existente) throw new ConflictError(`El número ${data.numero} ya está registrado como número especial`)
 
-  return createNumeroEspecial(sorteoId, data)
+  return createNumeroEspecial(sorteoId, {
+    ...data,
+    color: resolveNumeroEspecialColor(data.tipo, data.color),
+  })
 }
 
 export async function editarNumeroEspecial(
@@ -57,7 +68,10 @@ export async function editarNumeroEspecial(
     }
   }
 
-  return updateNumeroEspecial(neId, data)
+  return updateNumeroEspecial(neId, {
+    ...data,
+    color: data.color !== undefined ? resolveNumeroEspecialColor(ne.tipo, data.color) : undefined,
+  })
 }
 
 export async function eliminarNumeroEspecial(sorteoId: string, neId: string) {

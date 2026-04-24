@@ -3,6 +3,8 @@ services:
     image: postgres:16-alpine
     container_name: barros-postgres
     restart: unless-stopped
+    env_file:
+      - ./backend/.env
     environment:
       POSTGRES_DB: ${DB_NAME:-grupobarros}
       POSTGRES_USER: ${DB_USER:-postgres}

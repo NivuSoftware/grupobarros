@@ -6,21 +6,75 @@ const reveal = {
   viewport: { once: true, margin: "-80px" },
 };
 
-const socialGallery = [
+type GalleryItem =
+  | { type: "video"; src: string; className: string }
+  | { type: "image"; src: string; alt: string; className: string };
+
+const socialGallery: GalleryItem[] = [
   {
+    type: "video",
+    src: "/images/social/social.MOV",
+    className: "h-[480px] sm:h-[580px]",
+  },
+  {
+    type: "image",
     src: "/images/social/social1.jpeg",
     alt: "Jornada solidaria de Grupo Barros",
     className: "h-[520px] sm:h-[620px]",
   },
   {
+    type: "image",
     src: "/images/social/social2.jpeg",
     alt: "Entrega de ayuda social",
     className: "h-[420px] sm:h-[520px]",
   },
   {
+    type: "image",
     src: "/images/social/social3.jpeg",
     alt: "Acompanamiento comunitario",
     className: "h-[560px] sm:h-[660px]",
+  },
+  {
+    type: "image",
+    src: "/images/social/social4.jpeg",
+    alt: "Ayuda social Grupo Barros",
+    className: "h-[440px] sm:h-[540px]",
+  },
+  {
+    type: "image",
+    src: "/images/social/social5.jpeg",
+    alt: "Presencia comunitaria",
+    className: "h-[500px] sm:h-[600px]",
+  },
+  {
+    type: "image",
+    src: "/images/social/social6.jpeg",
+    alt: "Apoyo directo a la comunidad",
+    className: "h-[460px] sm:h-[560px]",
+  },
+  {
+    type: "image",
+    src: "/images/social/social9.jpeg",
+    alt: "Iniciativa solidaria",
+    className: "h-[520px] sm:h-[620px]",
+  },
+  {
+    type: "image",
+    src: "/images/social/social7.jpeg",
+    alt: "Acompanamiento social",
+    className: "h-[460px] sm:h-[560px]",
+  },
+  {
+    type: "image",
+    src: "/images/social/social8.jpeg",
+    alt: "Solidaridad comunitaria",
+    className: "h-[500px] sm:h-[600px]",
+  },
+  {
+    type: "image",
+    src: "/images/social/social10.jpeg",
+    alt: "Grupo Barros en la comunidad",
+    className: "h-[440px] sm:h-[540px]",
   },
 ];
 
@@ -53,19 +107,31 @@ export const SocialHelp = () => {
         </motion.div>
 
         <div className="columns-1 gap-5 sm:columns-2 xl:columns-3">
-          {socialGallery.map((image, index) => (
+          {socialGallery.map((item, index) => (
             <motion.figure
-              key={image.src}
+              key={item.src}
               {...reveal}
               transition={{ duration: 0.65, delay: index * 0.08 }}
               className="mb-5 break-inside-avoid overflow-hidden rounded-[2rem] border border-primary/15 bg-card/60 shadow-[0_0_0_1px_rgba(255,215,0,0.03),0_30px_80px_rgba(0,0,0,0.26)] backdrop-blur-xl"
             >
-              <img
-                src={image.src}
-                alt={image.alt}
-                loading="lazy"
-                className={`${image.className} w-full rounded-[2rem] object-cover`}
-              />
+              {item.type === "video" ? (
+                <video
+                  src={item.src}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  disablePictureInPicture
+                  className={`${item.className} w-full rounded-[2rem] object-cover`}
+                />
+              ) : (
+                <img
+                  src={item.src}
+                  alt={item.alt}
+                  loading="lazy"
+                  className={`${item.className} w-full rounded-[2rem] object-cover`}
+                />
+              )}
             </motion.figure>
           ))}
         </div>

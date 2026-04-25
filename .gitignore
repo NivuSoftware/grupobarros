@@ -17,3 +17,18 @@ build/
 # Runtime uploads
 backend/public/uploads/*
 !backend/public/uploads/.gitkeep
+
+# Docker local / desarrollo
+docker-compose.yml
+docker-compose.dev.yml
+Dockerfile
+Dockerfile.dev
+frontend/Dockerfile
+frontend/Dockerfile.dev
+backend/Dockerfile
+backend/Dockerfile.dev
+nginx/
+
+# Scripts de deploy
+*.sh
+deploy.sh

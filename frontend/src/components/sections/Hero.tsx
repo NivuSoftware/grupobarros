@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { ArrowRight, ChevronLeft, ChevronRight, Flame, Sparkles } from "lucide-react";
-import heroBg from "@/assets/hero.jpeg";
+import heroBg from "/images/hero.png";
 import { ProgressBar } from "../ProgressBar";
 import type { SorteoActivoData } from "@/lib/useSorteoActivo";
 

@@ -75,6 +75,7 @@ export interface NumeroEspecial {
   comprador_cedula?: string;
   comprador_telefono?: string;
   comprador_email?: string;
+  comprador_ciudad?: string;
   // comprador actual (número vendido pero aún no declarado ganador)
   boleto_actual_id?: string;
   comprador_actual_nombre?: string;
@@ -91,6 +92,7 @@ export interface Boleto {
   cedula: string;
   telefono?: string;
   email?: string;
+  ciudad?: string;
 }
 
 export interface Compra {
@@ -301,6 +303,7 @@ export const comprasApi = {
       telefono: string;
       email: string;
       direccion?: string;
+      ciudad?: string;
     };
     metodoPago?: MetodoPago;
     comprobanteUrl?: string;
@@ -316,8 +319,8 @@ export const comprasApi = {
       `/api/compras?pendientes=1${sorteoId ? `&sorteoId=${encodeURIComponent(sorteoId)}` : ""}`,
     ),
 
-  reporteVentas: () =>
-    request<ReporteVentas>("/api/compras?reporte=ventas"),
+  reporteVentas: (sorteoId?: string) =>
+    request<ReporteVentas>(`/api/compras?reporte=ventas${sorteoId ? `&sorteoId=${encodeURIComponent(sorteoId)}` : ""}`),
 
   validar: (id: string, accion: "VALIDADO" | "RECHAZADO") =>
     request<{ compra: CompraPendiente; boletos: Boleto[]; rechazado: boolean }>(
@@ -337,6 +340,7 @@ export interface PayphoneIniciarPayload {
     telefono: string;
     email: string;
     direccion?: string;
+    ciudad?: string;
   };
 }
 

@@ -11,6 +11,7 @@ export async function findNumerosBySorteo(sorteoId: string) {
             cg.cedula  AS comprador_cedula,
             cg.telefono AS comprador_telefono,
             cg.email   AS comprador_email,
+            cg.ciudad  AS comprador_ciudad,
             -- boleto actual (puede no ser ganador aún)
             ba.id      AS boleto_actual_id,
             ca2.nombre  AS comprador_actual_nombre,

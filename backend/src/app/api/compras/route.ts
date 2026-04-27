@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
       } catch {
         return NextResponse.json({ success: false, error: 'Token inválido' }, { status: 401 })
       }
-      if (reporte === 'ventas') return ok(await obtenerReporteVentas())
+      if (reporte === 'ventas') return ok(await obtenerReporteVentas(sorteoId))
       return ok(await listarComprasPendientes(sorteoId))
     }
 

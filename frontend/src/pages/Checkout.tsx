@@ -63,6 +63,7 @@ const emptyForm = {
   telefono: "",
   email: "",
   direccion: "",
+  ciudad: "",
 };
 
 type MetodoPago = "TARJETA" | "TRANSFERENCIA";
@@ -426,6 +427,7 @@ const Checkout = () => {
             telefono: internationalPhone,
             email: form.email.trim(),
             direccion: form.direccion.trim() || undefined,
+            ciudad: form.ciudad.trim() || undefined,
           },
           metodoPago: "TRANSFERENCIA",
           comprobanteUrl,
@@ -460,6 +462,7 @@ const Checkout = () => {
           telefono: internationalPhone,
           email: form.email.trim(),
           direccion: form.direccion.trim() || undefined,
+          ciudad: form.ciudad.trim() || undefined,
         },
       });
 
@@ -631,7 +634,17 @@ const Checkout = () => {
                     />
                   </Field>
 
-                  <Field label="Correo electrónico" icon={<Mail className="h-4 w-4" />}>
+                  <Field label="Ciudad" icon={<MapPin className="h-4 w-4" />}>
+                    <input
+                      value={form.ciudad}
+                      onChange={(event) => updateField("ciudad", event.target.value)}
+                      className="checkout-input"
+                      placeholder="Tu ciudad"
+                      autoComplete="address-level2"
+                    />
+                  </Field>
+
+                  <Field label="Correo electrónico" icon={<Mail className="h-4 w-4" />} className="sm:col-span-2">
                     <input
                       required
                       type="email"

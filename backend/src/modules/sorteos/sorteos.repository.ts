@@ -12,7 +12,8 @@ export async function findAllSorteos(estado?: string) {
          'comprador_nombre', comp.nombre,
          'cedula', comp.cedula,
          'telefono', comp.telefono,
-         'email', comp.email
+         'email', comp.email,
+         'ciudad', comp.ciudad
        ) END AS premio_mayor_boleto
      FROM sorteos s
      LEFT JOIN boletos b ON b.id = s.premio_mayor_boleto_id
@@ -36,7 +37,8 @@ export async function findSorteoById(id: string) {
          'comprador_nombre', comp.nombre,
          'cedula', comp.cedula,
          'telefono', comp.telefono,
-         'email', comp.email
+         'email', comp.email,
+         'ciudad', comp.ciudad
        ) END AS premio_mayor_boleto
      FROM sorteos s
      LEFT JOIN boletos b ON b.id = s.premio_mayor_boleto_id

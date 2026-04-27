@@ -13,15 +13,16 @@ function calcularMontoCompra(totalBoletos: number) {
 
 export async function upsertComprador(data: CompradorDto, client: PoolClient) {
   const { rows } = await client.query(
-    `INSERT INTO compradores (cedula, nombre, telefono, email, direccion)
-     VALUES ($1, $2, $3, $4, $5)
+    `INSERT INTO compradores (cedula, nombre, telefono, email, direccion, ciudad)
+     VALUES ($1, $2, $3, $4, $5, $6)
      ON CONFLICT (cedula) DO UPDATE
        SET nombre = EXCLUDED.nombre,
            telefono = EXCLUDED.telefono,
            email = EXCLUDED.email,
-           direccion = COALESCE(EXCLUDED.direccion, compradores.direccion)
+           direccion = COALESCE(EXCLUDED.direccion, compradores.direccion),
+           ciudad = COALESCE(EXCLUDED.ciudad, compradores.ciudad)
      RETURNING *`,
-    [data.cedula, data.nombre, data.telefono, data.email, data.direccion ?? null],
+    [data.cedula, data.nombre, data.telefono, data.email, data.direccion ?? null, data.ciudad ?? null],
   )
   return rows[0]
 }
@@ -55,21 +56,30 @@ export async function asignarNumerosAleatorios(
   cantidad: number,
   client: PoolClient,
 ): Promise<number[]> {
-  // Selecciona N números aleatorios del universo [0..numeroMax] que NO estén vendidos
-  // generate_series + EXCEPT garantiza exclusión exacta
-  // ORDER BY random() es eficiente para volúmenes normales de actividades
-  const { rows } = await client.query(
-    `SELECT gs.n AS numero
-     FROM generate_series(0, $1) AS gs(n)
-     WHERE NOT EXISTS (
-       SELECT 1 FROM boletos b
-       WHERE b.sorteo_id = $2 AND b.numero = gs.n
-     )
-     ORDER BY random()
-     LIMIT $3`,
-    [numeroMax, sorteoId, cantidad],
+  const { rows: vendidos } = await client.query(
+    `SELECT numero FROM boletos WHERE sorteo_id = $1`,
+    [sorteoId],
   )
-  return rows.map((r: { numero: number }) => r.numero)
+  const vendidosSet = new Set<number>(vendidos.map((r: { numero: number }) => r.numero))
+
+  const disponibles: number[] = []
+  for (let n = 0; n <= numeroMax; n++) {
+    if (!vendidosSet.has(n)) disponibles.push(n)
+  }
+
+  if (disponibles.length < cantidad) {
+    throw new Error(`No hay suficientes boletos disponibles. Disponibles: ${disponibles.length}, solicitados: ${cantidad}`)
+  }
+
+  // Fisher-Yates completo sobre todo el pool, luego tomar los primeros N
+  // Esto garantiza distribución uniforme real: cualquier número del pool
+  // tiene igual probabilidad de quedar en cualquier posición
+  for (let i = disponibles.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [disponibles[i], disponibles[j]] = [disponibles[j], disponibles[i]]
+  }
+
+  return disponibles.slice(0, cantidad)
 }
 
 // ─── Inserción de boletos con detección de números especiales ─────────────────
@@ -175,7 +185,11 @@ export async function findComprasPendientes(sorteoId?: string) {
   return rows
 }
 
-export async function getReporteVentas() {
+export async function getReporteVentas(sorteoId?: string) {
+  const params: unknown[] = [PRECIO_BOLETO]
+  const whereClause = sorteoId ? `WHERE c.sorteo_id = $2` : ''
+  if (sorteoId) params.push(sorteoId)
+
   const { rows } = await pool.query(
     `SELECT
        COUNT(*) FILTER (WHERE c.estado_pago <> 'RECHAZADO')::int AS ventas_realizadas,
@@ -185,8 +199,9 @@ export async function getReporteVentas() {
        COUNT(*) FILTER (WHERE c.metodo_pago = 'TARJETA' AND c.estado_pago <> 'RECHAZADO')::int AS ventas_tarjeta,
        COUNT(*) FILTER (WHERE c.estado_pago = 'PENDIENTE')::int AS ventas_pendientes,
        COUNT(*) FILTER (WHERE c.estado_pago = 'RECHAZADO')::int AS ventas_rechazadas
-     FROM compras c`,
-    [PRECIO_BOLETO],
+     FROM compras c
+     ${whereClause}`,
+    params,
   )
 
   const row = rows[0] ?? {}

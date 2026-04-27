@@ -426,6 +426,7 @@ function getGanadorFromNumeroEspecial(ne: NumeroEspecial): Boleto | null {
     cedula: ne.comprador_cedula,
     telefono: ne.comprador_telefono,
     email: ne.comprador_email,
+    ciudad: ne.comprador_ciudad,
   };
 }
 
@@ -438,6 +439,7 @@ function CompradorGanador({ boleto, compact = false }: { boleto: Boleto; compact
         <SensitiveInfoItem label="Cédula" value={boleto.cedula} />
         <InfoItem label="Correo" value={boleto.email ?? "Sin datos"} />
         <SensitiveInfoItem label="Teléfono" value={boleto.telefono ?? "Sin datos"} />
+        <InfoItem label="Ciudad" value={boleto.ciudad ?? "Sin datos"} />
         <InfoItem label="Número" value={String(boleto.numero).padStart(4, "0")} />
         <SensitiveInfoItem label="UUID boleto" value={boleto.id} mono />
       </div>

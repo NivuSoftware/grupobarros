@@ -98,6 +98,7 @@ export async function iniciarPagoPayphone(data: {
     telefono: string
     email: string
     direccion?: string
+    ciudad?: string
   }
 }) {
   const sorteo = await findSorteoById(data.sorteoId)

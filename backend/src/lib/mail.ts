@@ -133,16 +133,15 @@ export async function sendPurchaseConfirmationEmail({
     tiene_numero_especial?: boolean
   }[]
 }) {
-  const boletosOrdenados = [...boletos].sort((a, b) => a.numero - b.numero)
-  const numerosTexto = boletosOrdenados.map((b) => String(b.numero).padStart(4, '0')).join(', ')
-  const boletosTexto = boletosOrdenados
+  const numerosTexto = boletos.map((b) => String(b.numero).padStart(4, '0')).join(', ')
+  const boletosTexto = boletos
     .map((b) => `Numero ${String(b.numero).padStart(4, '0')} - Código único del boleto: ${b.id}`)
     .join('\n')
-  const boletosHtml = boletosOrdenados
+  const boletosHtml = boletos
     .map((boleto) => {
       const numero = String(boleto.numero).padStart(4, '0')
       const especial = boleto.tiene_numero_especial
-        ? '<span style="display:inline-block;margin-top:8px;padding:4px 8px;border-radius:999px;background-color:#f4d469;color:#090909;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;">Numero especial</span>'
+        ? '<span style="display:inline-block;margin-top:8px;padding:4px 8px;border-radius:999px;background-color:#dc2626;color:#ffffff;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;">Numero especial 🔥</span>'
         : ''
 
       return `

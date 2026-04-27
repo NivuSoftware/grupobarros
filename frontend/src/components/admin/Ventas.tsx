@@ -3,6 +3,7 @@ import { Banknote, CheckCircle, CreditCard, ExternalLink, Hash, ReceiptText, Sea
 import { Button } from "@/components/ui/button";
 import { getErrorMessage, notifyError, notifySuccess } from "@/lib/alerts";
 import { sorteoApi, comprasApi, boletoApi, type Sorteo, type Boleto, type Compra, type CompraPendiente, type ReporteVentas } from "@/lib/api";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const formatMoney = (value: number) => `$${value.toLocaleString("es-EC", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const FALLBACK_TICKET_PRICE = 2;
@@ -14,6 +15,8 @@ function getCompraMonto(compra: { monto?: number | string | null; total_boletos:
 
 export default function Ventas() {
   const [sorteoActivo, setSorteoActivo] = useState<Sorteo | null>(null);
+  const [todosSorteos, setTodosSorteos] = useState<Sorteo[]>([]);
+  const [sorteoReporteId, setSorteoReporteId] = useState<string | null>(null);
   const [boletos, setBoletos] = useState<Boleto[]>([]);
   const [totalBoletos, setTotalBoletos] = useState(0);
   const [page, setPage] = useState(1);
@@ -49,10 +52,10 @@ export default function Ventas() {
     }
   }, [sorteoActivo?.id]);
 
-  const cargarReporte = useCallback(async () => {
+  const cargarReporte = useCallback(async (sorteoId: string | null) => {
     setLoadingReporte(true);
     try {
-      const res = await comprasApi.reporteVentas();
+      const res = await comprasApi.reporteVentas(sorteoId ?? undefined);
       setReporte(res);
     } catch (err: unknown) {
       notifyError(getErrorMessage(err, "Error al cargar reporte de ventas"));
@@ -62,13 +65,15 @@ export default function Ventas() {
   }, []);
 
   useEffect(() => {
-    sorteoApi.listar("ACTIVO").then((list) => {
-      const activo = list[0] ?? null;
+    sorteoApi.listar().then((list) => {
+      setTodosSorteos(list);
+      const activo = list.find((s) => s.estado === "ACTIVO") ?? null;
       setSorteoActivo(activo);
+      const idReporte = activo?.id ?? list[0]?.id ?? null;
+      setSorteoReporteId(idReporte);
       if (activo) loadBoletos(activo.id, 1);
-    }).catch((err: unknown) => notifyError(getErrorMessage(err, "Error al cargar sorteo activo")));
-
-    cargarReporte();
+      cargarReporte(idReporte);
+    }).catch((err: unknown) => notifyError(getErrorMessage(err, "Error al cargar sorteos")));
   }, [cargarReporte]);
 
   useEffect(() => {
@@ -142,7 +147,7 @@ export default function Ventas() {
         if (sorteoActivo) loadBoletos(sorteoActivo.id, 1);
       }
       await cargarPendientes();
-      await cargarReporte();
+      await cargarReporte(sorteoReporteId);
     } catch (err: unknown) {
       notifyError(getErrorMessage(err, "Error al procesar la compra"));
     } finally {
@@ -160,31 +165,68 @@ export default function Ventas() {
       </div>
 
       {/* Mini reportería */}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <ReporteCard
-          icon={<ReceiptText className="h-5 w-5" />}
-          label="Ventas realizadas"
-          value={loadingReporte ? "Cargando" : (reporte?.ventas_realizadas ?? 0).toLocaleString("es-EC")}
-          note={`${(reporte?.boletos_vendidos ?? 0).toLocaleString("es-EC")} boletos registrados`}
-        />
-        <ReporteCard
-          icon={<Banknote className="h-5 w-5" />}
-          label="Dinero esperado"
-          value={loadingReporte ? "Cargando" : formatMoney(reporte?.dinero_esperado ?? 0)}
-          note={`A $${reporte?.precio_boleto ?? 2} por boleto`}
-        />
-        <ReporteCard
-          icon={<Banknote className="h-5 w-5" />}
-          label="Transferencias"
-          value={loadingReporte ? "Cargando" : (reporte?.ventas_transferencia ?? 0).toLocaleString("es-EC")}
-          note={`${(reporte?.ventas_pendientes ?? 0).toLocaleString("es-EC")} pendiente${reporte?.ventas_pendientes === 1 ? "" : "s"} de validar`}
-        />
-        <ReporteCard
-          icon={<CreditCard className="h-5 w-5" />}
-          label="Tarjeta"
-          value={loadingReporte ? "Cargando" : (reporte?.ventas_tarjeta ?? 0).toLocaleString("es-EC")}
-          note={`${(reporte?.ventas_rechazadas ?? 0).toLocaleString("es-EC")} rechazada${reporte?.ventas_rechazadas === 1 ? "" : "s"} excluida${reporte?.ventas_rechazadas === 1 ? "" : "s"}`}
-        />
+      <div className="space-y-3">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Reportería de ventas</p>
+            {sorteoReporteId && (
+              <p className="text-xs text-muted-foreground/60 mt-0.5">
+                {todosSorteos.find((s) => s.id === sorteoReporteId)?.estado === "ACTIVO" ? "Sorteo activo" : "Sorteo histórico"}
+              </p>
+            )}
+          </div>
+          {todosSorteos.length > 0 && (
+            <Select
+              value={sorteoReporteId ?? ""}
+              onValueChange={(val: string) => {
+                setSorteoReporteId(val);
+                cargarReporte(val);
+              }}
+            >
+              <SelectTrigger className="w-64 border-primary/30 text-sm">
+                <SelectValue placeholder="Seleccionar sorteo" />
+              </SelectTrigger>
+              <SelectContent>
+                {todosSorteos.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    <span className="flex items-center gap-2">
+                      {s.nombre}
+                      {s.estado === "ACTIVO" && (
+                        <span className="rounded-full bg-green-500/20 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-green-400">Activo</span>
+                      )}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <ReporteCard
+            icon={<ReceiptText className="h-5 w-5" />}
+            label="Ventas realizadas"
+            value={loadingReporte ? "Cargando" : (reporte?.ventas_realizadas ?? 0).toLocaleString("es-EC")}
+            note={`${(reporte?.boletos_vendidos ?? 0).toLocaleString("es-EC")} boletos registrados`}
+          />
+          <ReporteCard
+            icon={<Banknote className="h-5 w-5" />}
+            label="Dinero esperado"
+            value={loadingReporte ? "Cargando" : formatMoney(reporte?.dinero_esperado ?? 0)}
+            note={`A $${reporte?.precio_boleto ?? 2} por boleto`}
+          />
+          <ReporteCard
+            icon={<Banknote className="h-5 w-5" />}
+            label="Transferencias"
+            value={loadingReporte ? "Cargando" : (reporte?.ventas_transferencia ?? 0).toLocaleString("es-EC")}
+            note={`${(reporte?.ventas_pendientes ?? 0).toLocaleString("es-EC")} pendiente${reporte?.ventas_pendientes === 1 ? "" : "s"} de validar`}
+          />
+          <ReporteCard
+            icon={<CreditCard className="h-5 w-5" />}
+            label="Tarjeta"
+            value={loadingReporte ? "Cargando" : (reporte?.ventas_tarjeta ?? 0).toLocaleString("es-EC")}
+            note={`${(reporte?.ventas_rechazadas ?? 0).toLocaleString("es-EC")} rechazada${reporte?.ventas_rechazadas === 1 ? "" : "s"} excluida${reporte?.ventas_rechazadas === 1 ? "" : "s"}`}
+          />
+        </div>
       </div>
 
       {/* Compras pendientes de validación */}

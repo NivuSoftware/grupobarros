@@ -30,10 +30,13 @@ export async function realizarCompra(data: CompraDto) {
     throw new ValidationError('Debes adjuntar el comprobante de transferencia bancaria.')
   }
 
-  // Verificación optimista de disponibilidad (considera boletos ya asignados + reservados por pendientes)
+  // Disponibilidad = máximo + 1 - boletos ya asignados - boletos reservados por compras PENDIENTE
   const { rows: dispCheck } = await pool.query(
-    `SELECT ($1 + 1) - COUNT(*) AS disponibles
-     FROM boletos WHERE sorteo_id = $2`,
+    `SELECT ($1 + 1)
+       - (SELECT COUNT(*) FROM boletos WHERE sorteo_id = $2)
+       - (SELECT COALESCE(SUM(total_boletos), 0) FROM compras
+          WHERE sorteo_id = $2 AND estado_pago = 'PENDIENTE')
+     AS disponibles`,
     [sorteo.numero_maximo_boletos, data.sorteoId],
   )
   const availableTickets = parseInt(dispCheck[0].disponibles, 10)
@@ -281,6 +284,6 @@ export async function listarComprasPendientes(sorteoId?: string) {
   return findComprasPendientes(sorteoId)
 }
 
-export async function obtenerReporteVentas() {
-  return getReporteVentas()
+export async function obtenerReporteVentas(sorteoId?: string) {
+  return getReporteVentas(sorteoId)
 }

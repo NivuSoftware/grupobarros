@@ -7,6 +7,7 @@ export const CompradorSchema = z.object({
   telefono: z.string().regex(INTERNATIONAL_PHONE_REGEX, INTERNATIONAL_PHONE_MESSAGE),
   email: z.string().email('Email inválido'),
   direccion: z.string().min(5).max(300).optional(),
+  ciudad: z.string().min(2).max(100).optional(),
 })
 
 export const CompraSchema = z.object({

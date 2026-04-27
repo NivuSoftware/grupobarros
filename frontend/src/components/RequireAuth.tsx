@@ -10,7 +10,7 @@ export function RequireAuth({ children }: { children: ReactNode }) {
     return (
       <main className="grid min-h-screen place-items-center bg-background text-foreground">
         <div className="text-center">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">Validando sesion</p>
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">Validando sesión</p>
           <p className="mt-3 text-sm text-muted-foreground">Preparando tu panel.</p>
         </div>
       </main>

@@ -55,7 +55,7 @@ export const Winners = () => {
 
                 <div className="absolute bottom-0 inset-x-0 p-6 text-center">
                   <h3 className="font-display text-2xl font-bold leading-tight">{w.name}</h3>
-                  <p className="text-sm text-muted-foreground mb-2">{w.city} · {w.date}</p>
+                  <p className="text-sm text-muted-foreground mb-2">{w.city}, {w.date}</p>
                   <p className="text-primary font-semibold text-sm">🏆 {w.prize}</p>
                 </div>
               </div>

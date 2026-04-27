@@ -48,7 +48,7 @@ export const Hero = ({ sorteoData, loading }: Props) => {
               labelClassName="mb-4 text-base sm:text-lg"
             />
             <div className="mt-5 text-sm sm:text-base leading-relaxed text-foreground/70">
-              Los premios se jugarán una vez vendida la totalidad de los números, es decir, cuando la barra de progreso llegue al 100%. Se hará tomando los 5 números de la primera de la nacional.
+              Los premios se jugarán una vez vendida la totalidad de los números, es decir, cuando la barra de progreso llegue al 100%. Se hará tomando los 4 últimos números de la primera de la nacional.
             </div>
           </>
         )}
@@ -107,7 +107,7 @@ export const Hero = ({ sorteoData, loading }: Props) => {
 
             <p className="mt-6 text-lg sm:text-xl text-foreground/70 leading-relaxed max-w-lg mx-auto">
               Nuestro siguiente sorteo está a punto de abrir.{" "}
-              <span className="text-primary font-semibold">Prepárate</span> — los mejores premios
+              <span className="text-primary font-semibold">Prepárate</span>: los mejores premios
               se agotan en minutos.
             </p>
 

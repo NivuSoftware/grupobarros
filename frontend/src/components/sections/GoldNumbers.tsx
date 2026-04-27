@@ -36,14 +36,14 @@ export const GoldNumbers = ({ sorteoData, loading }: Props) => {
               <>
                 {goldNe.length}{" "}
                 <span className="text-gold-gradient">
-                  {goldNe.length === 1 ? "Número Dorado" : "Números Dorados"}
+                  {goldNe.length === 1 ? "Número Dorado" : "Números de oro"}
                 </span>
               </>
             )}
           </h2>
           <p className="mt-4 text-foreground/70">
-             Por la compra de tus boletos ya participas por premios{" "}
-            <span className="text-primary font-semibold">instantáneos</span> revisa si tu suerte te entrego alguno de estos numeros y envianos un mensaje para reclamar tu premio.
+            Por la compra de tus boletos ya participas por premios{" "}
+            <span className="text-primary font-semibold">instantáneos</span>. Revisa si tu suerte te entregó alguno de estos números y envíanos un mensaje para reclamar tu premio.
           </p>
         </motion.div>
 

@@ -71,11 +71,11 @@ export async function loginWithEmail(correo: string, password: string): Promise<
   }))) as LoginResponse;
 
   if (!response.ok) {
-    throw new Error(data.message || "No se pudo iniciar sesion.");
+    throw new Error(data.message || "No se pudo iniciar sesión.");
   }
 
   if (!data.accessToken) {
-    throw new Error("El servidor no devolvio un token de acceso.");
+    throw new Error("El servidor no devolvió un token de acceso.");
   }
 
   saveAccessToken(data.accessToken);
@@ -92,7 +92,7 @@ export async function refreshAccessToken(): Promise<string> {
 
   if (!response.ok || !data?.accessToken) {
     clearAccessToken();
-    throw new Error(data?.message || "Sesion expirada.");
+    throw new Error(data?.message || "Sesión expirada.");
   }
 
   saveAccessToken(data.accessToken);
@@ -110,7 +110,7 @@ export async function fetchCurrentUser(accessToken: string): Promise<AuthUser> {
   const data = (await response.json().catch(() => null)) as MeResponse | null;
 
   if (!response.ok || !data?.user) {
-    throw new Error(data?.message || "No se pudo validar la sesion.");
+    throw new Error(data?.message || "No se pudo validar la sesión.");
   }
 
   return data.user;

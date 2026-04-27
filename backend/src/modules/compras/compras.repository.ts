@@ -57,7 +57,7 @@ export async function asignarNumerosAleatorios(
 ): Promise<number[]> {
   // Selecciona N números aleatorios del universo [0..numeroMax] que NO estén vendidos
   // generate_series + EXCEPT garantiza exclusión exacta
-  // ORDER BY random() es eficiente para volúmenes normales de rifas
+  // ORDER BY random() es eficiente para volúmenes normales de actividades
   const { rows } = await client.query(
     `SELECT gs.n AS numero
      FROM generate_series(0, $1) AS gs(n)

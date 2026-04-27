@@ -4,15 +4,28 @@ import type { NumeroEspecialDto, EditarNumeroEspecialDto } from './numeros-espec
 
 export async function findNumerosBySorteo(sorteoId: string) {
   const { rows } = await pool.query(
-    `SELECT ne.*, b.numero AS boleto_numero,
-            comp.nombre AS comprador_nombre,
-            comp.cedula AS comprador_cedula,
-            comp.telefono AS comprador_telefono,
-            comp.email AS comprador_email
+    `SELECT ne.*,
+            -- datos del boleto ganador (si ya se declaró)
+            bg.numero AS boleto_numero,
+            cg.nombre  AS comprador_nombre,
+            cg.cedula  AS comprador_cedula,
+            cg.telefono AS comprador_telefono,
+            cg.email   AS comprador_email,
+            -- boleto actual (puede no ser ganador aún)
+            ba.id      AS boleto_actual_id,
+            ca2.nombre  AS comprador_actual_nombre,
+            ca2.cedula  AS comprador_actual_cedula,
+            ca2.telefono AS comprador_actual_telefono,
+            ca2.email   AS comprador_actual_email
      FROM numeros_especiales ne
-     LEFT JOIN boletos b ON b.id = ne.boleto_ganador_id
-     LEFT JOIN compras ca ON ca.id = b.compra_id
-     LEFT JOIN compradores comp ON comp.id = ca.comprador_id
+     -- join para ganador ya declarado
+     LEFT JOIN boletos bg ON bg.id = ne.boleto_ganador_id
+     LEFT JOIN compras  cga ON cga.id = bg.compra_id
+     LEFT JOIN compradores cg ON cg.id = cga.comprador_id
+     -- join para boleto actual por número (independiente de si es ganador)
+     LEFT JOIN boletos ba ON ba.sorteo_id = ne.sorteo_id AND ba.numero = ne.numero
+     LEFT JOIN compras  ca ON ca.id = ba.compra_id
+     LEFT JOIN compradores ca2 ON ca2.id = ca.comprador_id
      WHERE ne.sorteo_id = $1
      ORDER BY ne.tipo, ne.numero`,
     [sorteoId],
@@ -95,6 +108,23 @@ export async function updateNumeroEspecial(id: string, data: EditarNumeroEspecia
 
 export async function deleteNumeroEspecial(id: string) {
   await pool.query(`DELETE FROM numeros_especiales WHERE id = $1`, [id])
+}
+
+export async function findBoletoByNumeroEspecial(sorteoId: string, numero: number) {
+  const { rows } = await pool.query(
+    `SELECT b.id, b.numero,
+            comp.nombre AS comprador_nombre,
+            comp.cedula,
+            comp.telefono,
+            comp.email
+     FROM boletos b
+     JOIN compras c ON c.id = b.compra_id
+     JOIN compradores comp ON comp.id = c.comprador_id
+     WHERE b.sorteo_id = $1 AND b.numero = $2
+     LIMIT 1`,
+    [sorteoId, numero],
+  )
+  return rows[0] ?? null
 }
 
 export async function marcarGanadorEspecial(

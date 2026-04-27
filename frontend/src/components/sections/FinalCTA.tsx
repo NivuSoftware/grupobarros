@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, ShieldCheck, Sparkles } from "lucide-react";
 
 export const FinalCTA = () => {
   return (
@@ -26,21 +26,24 @@ export const FinalCTA = () => {
             Tu oportunidad de ganar empieza hoy. Mañana podría ser tarde.
           </p>
 
-          <motion.a
-            href="#packs"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-            className="mt-10 inline-flex items-center gap-3 px-10 py-5 rounded-full bg-gold-gradient text-primary-foreground font-bold tracking-wider text-lg shadow-gold-strong hover:scale-105 active:scale-95 transition-all glow-pulse"
-          >
-            COMPRAR AHORA
-            <ArrowRight className="w-5 h-5" />
-          </motion.a>
+          <div className="mt-6 flex items-center justify-center gap-2 text-xs tracking-[0.3em] uppercase text-muted-foreground">
+            <ShieldCheck className="h-4 w-4 text-primary" />
+            Pago seguro. Confirmación instantánea.
+          </div>
 
-          <p className="mt-6 text-xs tracking-[0.3em] uppercase text-muted-foreground">
-            🔒 Pago seguro · Confirmación instantánea
-          </p>
+          <div className="mt-6 flex justify-center">
+            <motion.a
+              href="#packs"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              className="inline-flex items-center gap-3 px-10 py-5 rounded-full bg-gold-gradient text-primary-foreground font-bold tracking-wider text-lg shadow-gold-strong hover:scale-105 active:scale-95 transition-all glow-pulse"
+            >
+              COMPRAR AHORA
+              <ArrowRight className="w-5 h-5" />
+            </motion.a>
+          </div>
         </motion.div>
       </div>
     </section>

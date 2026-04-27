@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import { Banknote, CheckCircle, CreditCard, ExternalLink, ReceiptText, Search, XCircle } from "lucide-react";
+import { Banknote, CheckCircle, CreditCard, ExternalLink, Hash, ReceiptText, Search, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getErrorMessage, notifyError, notifySuccess } from "@/lib/alerts";
-import { sorteoApi, comprasApi, type Sorteo, type Boleto, type Compra, type CompraPendiente, type ReporteVentas } from "@/lib/api";
+import { sorteoApi, comprasApi, boletoApi, type Sorteo, type Boleto, type Compra, type CompraPendiente, type ReporteVentas } from "@/lib/api";
 
 const formatMoney = (value: number) => `$${value.toLocaleString("es-EC", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const FALLBACK_TICKET_PRICE = 2;
@@ -23,6 +23,11 @@ export default function Ventas() {
   const [compras, setCompras] = useState<Compra[]>([]);
   const [buscando, setBuscando] = useState(false);
   const [buscado, setBuscado] = useState(false);
+
+  const [numeroBoleto, setNumeroBoleto] = useState("");
+  const [boletoEncontrado, setBoletoEncontrado] = useState<Boleto | null>(null);
+  const [buscandoBoleto, setBuscandoBoleto] = useState(false);
+  const [buscadoBoleto, setBuscadoBoleto] = useState(false);
 
   const [pendientes, setPendientes] = useState<CompraPendiente[]>([]);
   const [loadingPendientes, setLoadingPendientes] = useState(false);
@@ -84,6 +89,26 @@ export default function Ventas() {
     }
   };
 
+  const buscarPorNumero = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!sorteoActivo || !numeroBoleto.trim()) return;
+    const num = parseInt(numeroBoleto.trim(), 10);
+    if (isNaN(num)) { notifyError("Ingresa un número válido."); return; }
+    setBuscandoBoleto(true);
+    setBoletoEncontrado(null);
+    setBuscadoBoleto(false);
+    try {
+      const res = await boletoApi.buscarPorNumero(sorteoActivo.id, num);
+      setBoletoEncontrado(res);
+      setBuscadoBoleto(true);
+      if (!res) notifyError("No se encontró ningún comprador para ese número.");
+    } catch (err: unknown) {
+      notifyError(getErrorMessage(err, "Error al buscar boleto"));
+    } finally {
+      setBuscandoBoleto(false);
+    }
+  };
+
   const buscarCedula = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!cedula.trim()) return;
@@ -139,25 +164,25 @@ export default function Ventas() {
         <ReporteCard
           icon={<ReceiptText className="h-5 w-5" />}
           label="Ventas realizadas"
-          value={loadingReporte ? "..." : (reporte?.ventas_realizadas ?? 0).toLocaleString("es-EC")}
+          value={loadingReporte ? "Cargando" : (reporte?.ventas_realizadas ?? 0).toLocaleString("es-EC")}
           note={`${(reporte?.boletos_vendidos ?? 0).toLocaleString("es-EC")} boletos registrados`}
         />
         <ReporteCard
           icon={<Banknote className="h-5 w-5" />}
           label="Dinero esperado"
-          value={loadingReporte ? "..." : formatMoney(reporte?.dinero_esperado ?? 0)}
+          value={loadingReporte ? "Cargando" : formatMoney(reporte?.dinero_esperado ?? 0)}
           note={`A $${reporte?.precio_boleto ?? 2} por boleto`}
         />
         <ReporteCard
           icon={<Banknote className="h-5 w-5" />}
           label="Transferencias"
-          value={loadingReporte ? "..." : (reporte?.ventas_transferencia ?? 0).toLocaleString("es-EC")}
+          value={loadingReporte ? "Cargando" : (reporte?.ventas_transferencia ?? 0).toLocaleString("es-EC")}
           note={`${(reporte?.ventas_pendientes ?? 0).toLocaleString("es-EC")} pendiente${reporte?.ventas_pendientes === 1 ? "" : "s"} de validar`}
         />
         <ReporteCard
           icon={<CreditCard className="h-5 w-5" />}
           label="Tarjeta"
-          value={loadingReporte ? "..." : (reporte?.ventas_tarjeta ?? 0).toLocaleString("es-EC")}
+          value={loadingReporte ? "Cargando" : (reporte?.ventas_tarjeta ?? 0).toLocaleString("es-EC")}
           note={`${(reporte?.ventas_rechazadas ?? 0).toLocaleString("es-EC")} rechazada${reporte?.ventas_rechazadas === 1 ? "" : "s"} excluida${reporte?.ventas_rechazadas === 1 ? "" : "s"}`}
         />
       </div>
@@ -178,7 +203,7 @@ export default function Ventas() {
             </p>
           </div>
           <Button size="sm" variant="outline" onClick={cargarPendientes} disabled={loadingPendientes}>
-            {loadingPendientes ? "Cargando..." : "Actualizar"}
+            {loadingPendientes ? "Cargando…" : "Actualizar"}
           </Button>
         </div>
 
@@ -204,6 +229,52 @@ export default function Ventas() {
         )}
       </div>
 
+      {/* Buscador por número de boleto */}
+      <div className="rounded-md border border-primary/20 bg-card/80 p-5">
+        <h2 className="mb-4 font-bold flex items-center gap-2">
+          <Hash className="h-4 w-4 text-primary" />
+          Buscar comprador por número de boleto
+        </h2>
+        {!sorteoActivo && (
+          <p className="text-sm text-muted-foreground">No hay sorteo activo.</p>
+        )}
+        {sorteoActivo && (
+          <form onSubmit={buscarPorNumero} className="flex gap-3 flex-wrap">
+            <input
+              value={numeroBoleto}
+              onChange={(e) => { setNumeroBoleto(e.target.value); setBuscadoBoleto(false); setBoletoEncontrado(null); }}
+              placeholder="Número del boleto (ej: 0042)"
+              inputMode="numeric"
+              className="flex-1 min-w-0 rounded border border-primary/30 bg-background px-3 py-2 text-sm font-mono"
+            />
+            <Button type="submit" disabled={buscandoBoleto} className="gap-2">
+              <Search className="h-4 w-4" />
+              {buscandoBoleto ? "Buscando…" : "Buscar"}
+            </Button>
+          </form>
+        )}
+
+        {buscadoBoleto && !boletoEncontrado && (
+          <p className="mt-3 text-sm text-muted-foreground">No se encontró comprador para ese número.</p>
+        )}
+
+        {boletoEncontrado && (
+          <div className="mt-4 rounded-md border border-green-500/30 bg-green-500/5 p-4 space-y-2 text-sm">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-green-400">Comprador encontrado</p>
+            <div className="grid gap-1.5 sm:grid-cols-2 text-xs text-muted-foreground mt-2">
+              <div><span className="block text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Nombre</span><span className="text-foreground">{boletoEncontrado.comprador_nombre}</span></div>
+              <div><span className="block text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Cédula</span><span className="text-foreground font-mono">{boletoEncontrado.cedula}</span></div>
+              <div><span className="block text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Teléfono</span><span className="text-foreground">{boletoEncontrado.telefono ?? "—"}</span></div>
+              <div><span className="block text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Correo</span><span className="text-foreground">{boletoEncontrado.email ?? "—"}</span></div>
+              <div><span className="block text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Número</span><span className="text-foreground font-mono font-bold">{String(boletoEncontrado.numero).padStart(4, "0")}</span></div>
+              {boletoEncontrado.tiene_numero_especial && (
+                <div><span className="rounded-full bg-yellow-500/20 px-2 py-0.5 text-xs font-semibold text-yellow-400">Número especial</span></div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Buscador por cédula */}
       <div className="rounded-md border border-primary/20 bg-card/80 p-5">
         <h2 className="mb-4 font-bold">Buscar comprador por cédula</h2>
@@ -217,7 +288,7 @@ export default function Ventas() {
           />
           <Button type="submit" disabled={buscando} className="gap-2">
             <Search className="h-4 w-4" />
-            {buscando ? "Buscando..." : "Buscar"}
+            {buscando ? "Buscando…" : "Buscar"}
           </Button>
         </form>
 
@@ -282,7 +353,7 @@ function CompraPendienteCard({
       >
         <div className="min-w-0">
           <span className="font-semibold">{compra.comprador_nombre}</span>
-          <span className="ml-3 text-muted-foreground text-xs">{compra.cedula} · {compra.telefono}</span>
+          <span className="ml-3 text-muted-foreground text-xs">{compra.cedula} | {compra.telefono}</span>
           <span className="ml-3 text-xs text-amber-400">{compra.sorteo_nombre}</span>
         </div>
         <div className="flex items-center gap-3 shrink-0 ml-3">
@@ -336,7 +407,7 @@ function CompraPendienteCard({
               className="gap-2 bg-green-600 hover:bg-green-700 text-white"
             >
               <CheckCircle className="h-4 w-4" />
-              {validando ? "Procesando..." : "VALIDADO — Asignar boletos"}
+              {validando ? "Procesando…" : "Validado: asignar boletos"}
             </Button>
             <Button
               onClick={() => onValidar("RECHAZADO")}
@@ -361,7 +432,7 @@ function BoletoChip({ boleto }: { boleto: Boleto }) {
     : "bg-secondary text-foreground";
 
   return (
-    <div className={`${base} ${color}`} title={`${boleto.comprador_nombre} — ${boleto.cedula}`}>
+    <div className={`${base} ${color}`} title={`${boleto.comprador_nombre} | ${boleto.cedula}`}>
       {String(boleto.numero).padStart(4, "0")}
     </div>
   );
@@ -378,7 +449,7 @@ function CompraCard({ compra }: { compra: Compra }) {
       >
         <div>
           <span className="font-semibold">{compra.comprador_nombre}</span>
-          <span className="ml-3 text-muted-foreground text-xs">{compra.cedula} · {compra.telefono}</span>
+          <span className="ml-3 text-muted-foreground text-xs">{compra.cedula} | {compra.telefono}</span>
         </div>
         <div className="flex shrink-0 items-center gap-3">
           <span className="text-xs text-primary font-semibold">{compra.total_boletos} boletos</span>
@@ -387,7 +458,7 @@ function CompraCard({ compra }: { compra: Compra }) {
       </button>
       {open && (
         <div className="border-t border-primary/20 px-4 py-3">
-          <p className="text-xs text-muted-foreground mb-2">{compra.email} · {new Date(compra.creado_en).toLocaleString()}</p>
+          <p className="text-xs text-muted-foreground mb-2">{compra.email} | {new Date(compra.creado_en).toLocaleString()}</p>
           <div className="flex flex-wrap gap-1.5">
             {compra.boletos?.map((b) => (
               <span

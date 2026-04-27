@@ -170,7 +170,7 @@ export const OrangeNumber = ({ sorteoData, loading }: Props) => {
                         >
                           <Zap className="w-5 h-5 flex-shrink-0" style={{ color: itemTheme.accent }} />
                           <p className="text-sm text-foreground/80">
-                            ¿Te salió el numero? <span className="font-semibold text-foreground">envianos un mensaje</span>, y reclama tu premio!
+                            ¿Te salió el número? <span className="font-semibold text-foreground">Envíanos un mensaje</span> y reclama tu premio.
                           </p>
                         </div>
                       )}

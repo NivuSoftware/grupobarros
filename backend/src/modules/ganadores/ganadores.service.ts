@@ -9,6 +9,7 @@ import {
 import {
   findNumeroEspecialById,
   marcarGanadorEspecial,
+  findBoletoByNumeroEspecial,
 } from '../numeros-especiales/numeros-especiales.repository'
 
 async function findBoleto(boletoId: string, sorteoId: string) {
@@ -76,7 +77,6 @@ export async function marcarGanadorMayor(
 
 export async function marcarGanadorNumeroEspecial(
   numeroEspecialId: string,
-  boletoId: string,
   adminId: string | null = null,
 ) {
   const client = await pool.connect()
@@ -93,17 +93,11 @@ export async function marcarGanadorNumeroEspecial(
       throw new ForbiddenError('Solo se puede marcar ganador en sorteos ACTIVOS o CERRADOS')
     }
 
-    const boleto = await findBoleto(boletoId, ne.sorteo_id)
-    if (!boleto) throw new NotFoundError('Boleto (debe pertenecer al sorteo indicado)')
+    // Auto-resolver el boleto por número especial
+    const boleto = await findBoletoByNumeroEspecial(ne.sorteo_id, ne.numero)
+    if (!boleto) throw new NotFoundError('No hay ningún comprador con ese número especial aún')
 
-    // El boleto debe tener exactamente el número del número especial
-    if (boleto.numero !== ne.numero) {
-      throw new ValidationError(
-        `El boleto ${boleto.numero} no corresponde al número especial ${ne.numero}`,
-      )
-    }
-
-    const neActualizado = await marcarGanadorEspecial(numeroEspecialId, boletoId, adminId, client)
+    const neActualizado = await marcarGanadorEspecial(numeroEspecialId, boleto.id, adminId, client)
 
     // Verificar cierre automático
     const debeCerrar = await verificarCierreAutomatico(ne.sorteo_id, client)

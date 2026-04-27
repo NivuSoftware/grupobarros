@@ -14,6 +14,7 @@ const Login               = lazy(() => import("./pages/Login.tsx"));
 const NotFound            = lazy(() => import("./pages/NotFound.tsx"));
 const PurchaseConfirmation = lazy(() => import("./pages/PurchaseConfirmation.tsx"));
 const Terms               = lazy(() => import("./pages/Terms.tsx"));
+const HowToBuy            = lazy(() => import("./pages/HowToBuy.tsx"));
 
 const App = () => (
   <BrowserRouter>
@@ -25,6 +26,7 @@ const App = () => (
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/compra-confirmada" element={<PurchaseConfirmation />} />
           <Route path="/terminos-y-condiciones" element={<Terms />} />
+          <Route path="/como-comprar" element={<HowToBuy />} />
           <Route path="/login" element={<Login />} />
           <Route
             path="/admin"

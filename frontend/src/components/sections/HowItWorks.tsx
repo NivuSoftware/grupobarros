@@ -1,10 +1,11 @@
 import { motion } from "framer-motion";
 import { ShoppingCart, MailCheck, Trophy, Gift } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const steps = [
   { icon: ShoppingCart, title: "Compra tus números", desc: "Elige tu pack y paga de forma 100% segura en segundos." },
-  { icon: MailCheck, title: "Confirmación inmediata", desc: "Recibe tus números al instante por correo y WhatsApp." },
-  { icon: Trophy, title: "Participa en el sorteo", desc: "Una vez se vena el 100% de boletos se realizara el sorteo verificando el ganador con los numeros de la loteria nacional." },
+  { icon: MailCheck, title: "Confirmación inmediata", desc: "Recibe tus números al instante por correo." },
+  { icon: Trophy, title: "Participa en el sorteo", desc: "Una vez se venda el 100% de boletos se realizará el sorteo verificando el ganador con los números de la lotería nacional." },
   { icon: Gift, title: "Gana premios increíbles", desc: "Camionetas, motos, dinero en efectivo y mucho más." },
 ];
 
@@ -51,6 +52,21 @@ export const HowItWorks = () => {
             </motion.div>
           ))}
         </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="mt-12 text-center"
+        >
+          <Link
+            to="/como-comprar"
+            className="inline-flex items-center gap-2 rounded-full border border-primary/40 px-6 py-3 text-sm font-semibold text-foreground transition-all hover:border-primary hover:bg-primary/10 hover:text-primary"
+          >
+            ¿Cómo comprar? Ver tutorial →
+          </Link>
+        </motion.div>
       </div>
     </section>
   );

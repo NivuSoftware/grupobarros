@@ -281,3 +281,12 @@
   0%, 100% { transform: translateY(0px); }
   50% { transform: translateY(-12px); }
 }
+
+@keyframes navbar-bar-pulse {
+  0%, 100% {
+    box-shadow: 0 0 10px hsl(43 74% 58% / 0.5), 0 0 20px hsl(43 74% 58% / 0.3);
+  }
+  50% {
+    box-shadow: 0 0 22px hsl(43 74% 58% / 0.9), 0 0 44px hsl(43 74% 58% / 0.55);
+  }
+}

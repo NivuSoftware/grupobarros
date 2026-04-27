@@ -1,5 +1,6 @@
 import { Logo } from "./Logo";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { TrendingUp } from "lucide-react";
 import type { SorteoActivoData } from "@/lib/useSorteoActivo";
 
@@ -23,6 +24,15 @@ export const Navbar = ({ sorteoData, loading }: NavbarProps) => {
   const progress = stats ? clampProgress(stats.porcentajeVendido) : 0;
   const progressLabel = progress.toLocaleString("es-EC", { maximumFractionDigits: 2 });
 
+  // Animación de crecimiento al montar (igual que ProgressBar del hero)
+  const [barWidth, setBarWidth] = useState(0);
+  const barRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!showProgress) return;
+    const t = setTimeout(() => setBarWidth(progress), 300);
+    return () => clearTimeout(t);
+  }, [showProgress, progress]);
+
   return (
     <header
       className={`fixed top-0 inset-x-0 z-40 transition-all duration-500 ${
@@ -31,7 +41,9 @@ export const Navbar = ({ sorteoData, loading }: NavbarProps) => {
     >
       {/* Main bar */}
       <div className={`container flex items-center justify-center md:justify-between transition-all ${scrolled ? "py-4" : "py-5"}`}>
-        <Logo />
+        <Link to="/" aria-label="Ir a inicio" className="inline-flex">
+          <Logo />
+        </Link>
         <nav className="hidden md:flex items-center gap-10 text-base tracking-wide text-foreground/70">
           <a href="#numeros-oro" className="hover:text-primary transition-colors">Números de Oro</a>
           <a href="#packs" className="hover:text-primary transition-colors">Packs</a>
@@ -57,12 +69,16 @@ export const Navbar = ({ sorteoData, loading }: NavbarProps) => {
                 Avance del sorteo
               </span>
             </div>
-            <div className="flex-1 h-3.5 rounded-full bg-secondary overflow-hidden relative">
+            <div ref={barRef} className="flex-1 h-3.5 rounded-full bg-secondary overflow-hidden relative">
               <div
-                className="h-full bg-gold-gradient relative transition-all duration-700"
-                style={{ width: `${progress}%` }}
+                className="h-full bg-gold-gradient relative transition-[width] duration-[1800ms] ease-out"
+                style={{
+                  width: `${barWidth}%`,
+                  boxShadow: "0 0 12px hsl(var(--primary) / 0.7), 0 0 24px hsl(var(--primary) / 0.4)",
+                  animation: "navbar-bar-pulse 2s ease-in-out infinite",
+                }}
               >
-                <div className="absolute inset-0 shimmer" />
+                <div className="absolute inset-0 shimmer rounded-full" />
               </div>
             </div>
             <span className="text-sm sm:text-base font-bold text-gold-gradient whitespace-nowrap">{progressLabel}%</span>

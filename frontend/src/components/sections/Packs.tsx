@@ -89,7 +89,7 @@ export const Packs = () => {
               >
                 {pack.numbers === 10 && (
                   <span className="absolute right-5 top-0 -translate-y-1/2 rounded-full bg-gold-gradient px-4 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-primary-foreground shadow-gold">
-                    (MAS VENDIDO)
+                    Más vendido
                   </span>
                 )}
                 <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Cantidad</p>
@@ -156,6 +156,21 @@ export const Packs = () => {
           {customQuantityError && (
             <p className="mt-3 text-center text-sm text-destructive">{customQuantityError}</p>
           )}
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="mt-6 text-center"
+        >
+          <Link
+            to="/como-comprar"
+            className="inline-flex items-center gap-2 rounded-full border border-primary/40 px-6 py-3 text-sm font-semibold text-foreground transition-all hover:border-primary hover:bg-primary/10 hover:text-primary"
+          >
+            ¿Cómo comprar? Ver tutorial →
+          </Link>
         </motion.div>
       </div>
     </section>

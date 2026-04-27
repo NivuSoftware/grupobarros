@@ -56,14 +56,14 @@ export default function Resumen() {
         <MetricCard
           icon={<Ticket className="h-5 w-5" />}
           label="Boletos vendidos"
-          value={stats?.vendidos.toLocaleString() ?? "—"}
+          value={stats?.vendidos.toLocaleString() ?? "Sin datos"}
           note={stats ? `${stats.porcentajeVendido}% del total` : "Sin sorteo activo"}
         />
         <MetricCard
           icon={<BarChart3 className="h-5 w-5" />}
           label="Boletos disponibles"
-          value={stats?.disponibles.toLocaleString() ?? "—"}
-          note={stats ? `de ${stats.totalBoletos.toLocaleString()} totales` : "—"}
+          value={stats?.disponibles.toLocaleString() ?? "Sin datos"}
+          note={stats ? `de ${stats.totalBoletos.toLocaleString()} totales` : "Sin sorteo activo"}
         />
         <MetricCard
           icon={<TrendingUp className="h-5 w-5" />}
@@ -103,10 +103,10 @@ export default function Resumen() {
 
           <div className="mt-5 grid gap-3 sm:grid-cols-3">
             <Stat label="Premio mayor" value={sorteoActivo.premio_mayor_nombre} />
-            <Stat label="Rango boletos" value={`0 – ${sorteoActivo.numero_maximo_boletos.toLocaleString()}`} />
+            <Stat label="Rango boletos" value={`0 a ${sorteoActivo.numero_maximo_boletos.toLocaleString()}`} />
             <Stat
               label="Ganador mayor"
-              value={sorteoActivo.premio_mayor_boleto_id ? "Declarado ✓" : "Pendiente"}
+              value={sorteoActivo.premio_mayor_boleto_id ? "Declarado" : "Pendiente"}
             />
           </div>
         </div>

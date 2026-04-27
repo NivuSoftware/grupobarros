@@ -19,6 +19,8 @@ import { Footer } from "@/components/sections/Footer";
 import { getErrorMessage, notifyError, notifySuccess } from "@/lib/alerts";
 import { comprasApi, payphoneApi, uploadApi } from "@/lib/api";
 import { isValidEcuadorianCedula } from "@/lib/cedulaEcuatoriana";
+import pichinchaLogo from "@/assets/pichincha.png";
+import produbancoLogo from "@/assets/produbanco.png";
 import {
   getDefaultTicketQuantity,
   getMinimumSelectableTickets,
@@ -64,6 +66,27 @@ const emptyForm = {
 };
 
 type MetodoPago = "TARJETA" | "TRANSFERENCIA";
+
+const bankAccounts = [
+  {
+    bank: "Banco Pichincha",
+    logo: pichinchaLogo,
+    accountType: "Cuenta Ahorros",
+    number: "2205772717",
+    cedula: undefined,
+    email: "grupobarros2026@outlook.com",
+    owner: "Christian Fabricio Barros Narvaez",
+  },
+  {
+    bank: "Produbanco",
+    logo: produbancoLogo,
+    accountType: "Cuenta Ahorros",
+    number: "12060293832",
+    cedula: "1725079261",
+    email: "grupobarros2026@outlook.com",
+    owner: "Christian Fabricio Barros Narvaez",
+  },
+] as const;
 
 // ─── Payphone script loader ────────────────────────────────────────────────────
 
@@ -466,9 +489,9 @@ const Checkout = () => {
   };
 
   const submitLabel = () => {
-    if (uploadingComprobante) return "Subiendo comprobante...";
-    if (esperandoPagoPayphone) return "Procesando pago...";
-    if (submitting) return "Registrando compra...";
+    if (uploadingComprobante) return "Subiendo comprobante…";
+    if (esperandoPagoPayphone) return "Procesando pago…";
+    if (submitting) return "Registrando compra…";
     if (metodoPago === "TRANSFERENCIA") return `Enviar comprobante y reservar ${normalizedQuantity} boletos`;
     return `Pagar $${total.toLocaleString("es-EC")} con tarjeta`;
   };
@@ -638,7 +661,7 @@ const Checkout = () => {
                     onClick={() => setMetodoPago("TARJETA")}
                     icon={<CreditCard className="h-6 w-6" />}
                     titulo="Tarjeta de crédito/débito"
-                    descripcion="Visa · Mastercard · Diners"
+                    descripcion="Visa, Mastercard y Diners"
                   />
                 </div>
               </div>
@@ -647,13 +670,54 @@ const Checkout = () => {
               <AnimatePresence>
                 {metodoPago === "TRANSFERENCIA" && (
                   <motion.div
-                    key="comprobante"
+                    key="transferencia"
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
                     exit={{ opacity: 0, height: 0 }}
                     transition={{ duration: 0.25 }}
                     className="overflow-hidden"
                   >
+                    <div className="mb-3 rounded-lg border border-primary/30 bg-secondary/30 p-5">
+                      <div className="mb-4 flex items-center gap-2">
+                        <Building2 className="h-4 w-4 text-primary" />
+                        <p className="text-sm font-semibold text-foreground/80">Datos para transferencia</p>
+                      </div>
+                      <div className="grid gap-3 md:grid-cols-2">
+                        {bankAccounts.map((account) => (
+                          <div key={account.bank} className="rounded-lg border border-primary/20 bg-background/50 p-4">
+                            <div className="mb-4 flex h-12 items-center">
+                              <img src={account.logo} alt={account.bank} className="max-h-12 max-w-52 object-contain" />
+                            </div>
+                            <p className="mb-3 text-sm font-bold text-primary">{account.bank}</p>
+                            <dl className="space-y-2 text-xs leading-relaxed text-muted-foreground">
+                              <div className="flex items-start justify-between gap-3">
+                                <dt className="font-semibold text-foreground/70">Tipo</dt>
+                                <dd className="text-right">{account.accountType}</dd>
+                              </div>
+                              <div className="flex items-start justify-between gap-3">
+                                <dt className="font-semibold text-foreground/70">Número</dt>
+                                <dd className="text-right font-semibold text-foreground">{account.number}</dd>
+                              </div>
+                              {account.cedula && (
+                                <div className="flex items-start justify-between gap-3">
+                                  <dt className="font-semibold text-foreground/70">Cédula</dt>
+                                  <dd className="text-right">{account.cedula}</dd>
+                                </div>
+                              )}
+                              <div className="flex items-start justify-between gap-3">
+                                <dt className="font-semibold text-foreground/70">Correo</dt>
+                                <dd className="break-all text-right">{account.email}</dd>
+                              </div>
+                              <div className="flex items-start justify-between gap-3">
+                                <dt className="font-semibold text-foreground/70">Titular</dt>
+                                <dd className="text-right">{account.owner}</dd>
+                              </div>
+                            </dl>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
                     <div className="rounded-lg border border-primary/30 bg-secondary/30 p-5">
                       <div className="mb-3 flex items-center gap-2">
                         <ImageIcon className="h-4 w-4 text-primary" />
@@ -684,7 +748,7 @@ const Checkout = () => {
                         <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-primary/30 bg-background/50 px-4 py-8 text-center transition-colors hover:border-primary/60 hover:bg-background/80">
                           <ImageIcon className="h-8 w-8 text-primary/50" />
                           <span className="text-sm font-semibold text-foreground/70">Haz clic para subir el comprobante</span>
-                          <span className="text-xs text-muted-foreground">JPG, PNG o PDF · Máx. 10 MB</span>
+                          <span className="text-xs text-muted-foreground">JPG, PNG o PDF. Máx. 10 MB</span>
                           <input
                             ref={fileInputRef}
                             type="file"
@@ -753,7 +817,7 @@ const Checkout = () => {
 
               {esperandoPagoPayphone && (
                 <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 text-sm leading-relaxed text-foreground/80 text-center animate-pulse">
-                  Procesando pago con Payphone... Por favor no cierres esta página.
+                  Procesando pago con Payphone… Por favor, no cierres esta página.
                 </div>
               )}
 

@@ -202,8 +202,8 @@ function SorteoCard({
 
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 text-sm">
                 <Info label="Premio mayor" value={sorteo.premio_mayor_nombre} />
-                <Info label="Rango boletos" value={`0 – ${sorteo.numero_maximo_boletos.toLocaleString()}`} />
-                <Info label="Ganador mayor" value={sorteo.premio_mayor_boleto_id ? "Declarado ✓" : "Pendiente"} />
+                <Info label="Rango boletos" value={`0 a ${sorteo.numero_maximo_boletos.toLocaleString()}`} />
+                <Info label="Ganador mayor" value={sorteo.premio_mayor_boleto_id ? "Declarado" : "Pendiente"} />
                 {sorteo.descripcion && <Info label="Descripción" value={sorteo.descripcion} />}
                 {sorteo.premio_mayor_descripcion && (
                   <Info label="Desc. premio mayor" value={sorteo.premio_mayor_descripcion} />
@@ -250,7 +250,7 @@ function SorteoCard({
               </div>
 
               {neLoading ? (
-                <div className="text-xs text-muted-foreground">Cargando...</div>
+                <div className="text-xs text-muted-foreground">Cargando…</div>
               ) : (
                 <div className="space-y-2">
                   {ne.map((n) => (
@@ -380,7 +380,7 @@ function EditarSorteoForm({
 
       <div className="flex gap-2">
         <Button type="submit" size="sm" disabled={saving} className="gap-1">
-          <Save className="h-3 w-3" />{saving ? "Guardando..." : "Guardar cambios"}
+          <Save className="h-3 w-3" />{saving ? "Guardando…" : "Guardar cambios"}
         </Button>
         <Button type="button" size="sm" variant="ghost" onClick={onCancel}>Cancelar</Button>
       </div>
@@ -481,7 +481,7 @@ function NumeroEspecialRow({
           <ImageUpload value={imagen} onChange={setImagen} label="Imagen del premio (opcional)" />
           <div className="flex gap-2">
             <Button size="sm" className="h-6 text-xs" disabled={saving} onClick={handleSave}>
-              {saving ? "..." : "Guardar"}
+              {saving ? "Guardando…" : "Guardar"}
             </Button>
             <Button size="sm" variant="ghost" className="h-6 text-xs" onClick={() => setEditing(false)}>
               Cancelar
@@ -511,7 +511,7 @@ function NumeroEspecialRow({
             {isPH ? "sin número" : String(ne.numero).padStart(4, "0")}
           </span>
           {ne.nombre_premio && <span className="text-muted-foreground flex-1 truncate">{ne.nombre_premio}</span>}
-          {ne.es_ganador && <span className="rounded-full bg-green-500/15 px-2 py-0.5 text-xs text-green-400">Ganador ✓</span>}
+          {ne.es_ganador && <span className="rounded-full bg-green-500/15 px-2 py-0.5 text-xs text-green-400">Ganador declarado</span>}
           {sorteo.estado === "DRAFT" && (
             <div className="ml-auto flex gap-1">
               <button type="button" onClick={() => setEditing(true)} className="p-1 hover:text-primary text-muted-foreground">
@@ -573,7 +573,7 @@ function AddNumeroEspecialForm({
       <div className="flex flex-wrap gap-3">
         <input
           required type="number" value={numero} onChange={(e) => setNumero(e.target.value)}
-          placeholder={`Número (0–${maxBoleto})`} min={0} max={maxBoleto}
+          placeholder={`Número de 0 a ${maxBoleto}`} min={0} max={maxBoleto}
           className="w-36 rounded border border-primary/30 bg-background px-3 py-2 text-sm"
         />
         <select
@@ -602,7 +602,7 @@ function AddNumeroEspecialForm({
       </div>
       <ImageUpload value={imagen} onChange={setImagen} label="Imagen del premio (opcional)" />
       <div className="flex gap-2">
-        <Button type="submit" size="sm" disabled={saving}>{saving ? "Guardando..." : "Agregar"}</Button>
+        <Button type="submit" size="sm" disabled={saving}>{saving ? "Guardando…" : "Agregar"}</Button>
         <Button type="button" size="sm" variant="ghost" onClick={onCancel}>Cancelar</Button>
       </div>
     </form>
@@ -651,7 +651,7 @@ function CrearSorteoForm({ onCreated, onCancel }: { onCreated: () => void; onCan
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Nombre del sorteo *" required>
             <input required value={form.nombre} onChange={(e) => set("nombre", e.target.value)}
-              className="input-base" placeholder="Ej: Gran Rifa 2025" />
+              className="input-base" placeholder="Ej: Gran Actividad 2025" />
           </Field>
           <Field label="Número máximo de boletos *" required>
             <input required type="number" value={form.numeroMaximoBoletos}
@@ -703,7 +703,7 @@ function CrearSorteoForm({ onCreated, onCancel }: { onCreated: () => void; onCan
         </div>
 
         <div className="flex gap-2 pt-2">
-          <Button type="submit" disabled={saving}>{saving ? "Creando..." : "Crear sorteo"}</Button>
+          <Button type="submit" disabled={saving}>{saving ? "Creando…" : "Crear sorteo"}</Button>
           <Button type="button" variant="ghost" onClick={onCancel}>Cancelar</Button>
         </div>
       </form>

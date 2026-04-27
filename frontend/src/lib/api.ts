@@ -75,6 +75,12 @@ export interface NumeroEspecial {
   comprador_cedula?: string;
   comprador_telefono?: string;
   comprador_email?: string;
+  // comprador actual (número vendido pero aún no declarado ganador)
+  boleto_actual_id?: string;
+  comprador_actual_nombre?: string;
+  comprador_actual_cedula?: string;
+  comprador_actual_telefono?: string;
+  comprador_actual_email?: string;
 }
 
 export interface Boleto {
@@ -261,10 +267,10 @@ export const neApi = {
       method: "DELETE",
     }),
 
-  marcarGanador: (neId: string, boletoId: string) =>
+  marcarGanador: (neId: string) =>
     request<{ numeroEspecial: NumeroEspecial; boleto: Boleto; cerradoAutomaticamente: boolean }>(
       `/api/numeros-especiales/${neId}/ganador`,
-      { method: "POST", body: JSON.stringify({ boletoId }) },
+      { method: "POST" },
     ),
 };
 

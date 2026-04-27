@@ -66,7 +66,7 @@ export default function Ganadores() {
 
       {sorteos.length === 0 ? (
         <div className="rounded-md border border-dashed border-primary/20 p-8 text-center text-muted-foreground">
-          No hay sorteos activos o cerrados. Publica un sorteo para gestionar ganadores.
+          No hay actividades activas o cerradas. Publica un sorteo para gestionar ganadores.
         </div>
       ) : (
         <>
@@ -127,17 +127,18 @@ export default function Ganadores() {
                         key={n.id}
                         ne={n}
                         sorteo={selected}
-                        onGanadorMarcado={(boletoId) =>
-                          neApi.marcarGanador(n.id, boletoId)
-                            .then((res) => {
-                              flash(res.cerradoAutomaticamente
-                                ? "¡Ganador marcado! El sorteo se cerró automáticamente."
-                                : `Ganador del número ${n.numero} marcado.`);
-                              reloadSelected();
-                              return res;
-                            })
-                            .catch((e: unknown) => flash(getErrorMessage(e, "Error"), "error"))
-                        }
+                        onGanadorMarcado={async () => {
+                          try {
+                            const res = await neApi.marcarGanador(n.id);
+                            flash(res.cerradoAutomaticamente
+                              ? "¡Ganador marcado! El sorteo se cerró automáticamente."
+                              : `Ganador del número ${n.numero} marcado.`);
+                            reloadSelected();
+                            return res;
+                          } catch (e: unknown) {
+                            flash(getErrorMessage(e, "Error"), "error");
+                          }
+                        }}
                       />
                     ))}
                   </div>
@@ -242,7 +243,7 @@ function PremioMayorCard({
 
       {sorteo.premio_mayor_boleto_id ? (
         <div className="rounded-md bg-green-500/10 border border-green-500/30 px-4 py-3">
-          <p className="text-sm font-semibold text-green-400">✓ Ganador declarado</p>
+          <p className="text-sm font-semibold text-green-400">Ganador declarado</p>
           <p className="text-xs text-muted-foreground mt-1">ID boleto: {sorteo.premio_mayor_boleto_id}</p>
           {ganadorMayor && <CompradorGanador boleto={ganadorMayor} />}
         </div>
@@ -271,7 +272,7 @@ function PremioMayorCard({
               />
               <Button type="submit" disabled={searching} variant="outline" className="gap-2">
                 <Search className="h-4 w-4" />
-                {searching ? "Buscando..." : "Buscar boleto"}
+                {searching ? "Buscando…" : "Buscar boleto"}
               </Button>
             </div>
           </form>
@@ -298,7 +299,7 @@ function PremioMayorCard({
                   />
                   <Button type="submit" disabled={saving} className="gap-2">
                     <ShieldCheck className="h-4 w-4" />
-                    {saving ? "Verificando..." : "Confirmar y declarar"}
+                    {saving ? "Verificando…" : "Confirmar y declarar"}
                   </Button>
                 </div>
               </form>
@@ -319,44 +320,55 @@ function NumeroEspecialGanadorRow({
 }: {
   ne: NumeroEspecial;
   sorteo: Sorteo;
-  onGanadorMarcado: (boletoId: string) => Promise<GanadorMarcadoResult | void>;
+  onGanadorMarcado: () => Promise<GanadorMarcadoResult | void>;
 }) {
-  const [boletoId, setBoletoId] = useState("");
   const [ganador, setGanador] = useState<Boleto | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!boletoId.trim()) return;
+  const handleDeclarar = async () => {
     setSaving(true);
     try {
-      const result = await onGanadorMarcado(boletoId.trim());
+      const result = await onGanadorMarcado();
       if (result?.boleto) setGanador(result.boleto);
+    } finally {
+      setSaving(false);
     }
-    finally { setSaving(false); }
   };
 
   const isPH = ne.numero < 0;
   const ganadorActual = ganador ?? getGanadorFromNumeroEspecial(ne);
 
+  // Comprador actual (número ya vendido, aún no declarado ganador)
+  const compradorActual: Boleto | null = ne.boleto_actual_id ? {
+    id: ne.boleto_actual_id,
+    numero: ne.numero,
+    tiene_numero_especial: true,
+    comprador_nombre: ne.comprador_actual_nombre ?? "",
+    cedula: ne.comprador_actual_cedula ?? "",
+    telefono: ne.comprador_actual_telefono,
+    email: ne.comprador_actual_email,
+  } : null;
+
+  const NeBadge = () => ne.tipo === "ORO" ? (
+    <span className="text-xs font-bold uppercase text-yellow-400">{ne.tipo}</span>
+  ) : (
+    <span
+      className="rounded-full border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.18em]"
+      style={{
+        color: getNumeroEspecialColorTheme(ne.color).accent,
+        borderColor: getNumeroEspecialColorTheme(ne.color).accentSoft,
+        background: getNumeroEspecialColorTheme(ne.color).cardBackground,
+      }}
+    >
+      {getNumeroEspecialBadgeLabel(ne.tipo, ne.color)}
+    </span>
+  );
+
   if (isPH) {
     return (
       <div className="flex items-center gap-3 rounded-md bg-background/70 px-4 py-3 text-sm text-muted-foreground italic">
-        {ne.tipo === "ORO" ? (
-          <span className="text-xs font-bold uppercase text-yellow-400">{ne.tipo}</span>
-        ) : (
-          <span
-            className="rounded-full border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.18em]"
-            style={{
-              color: getNumeroEspecialColorTheme(ne.color).accent,
-              borderColor: getNumeroEspecialColorTheme(ne.color).accentSoft,
-              background: getNumeroEspecialColorTheme(ne.color).cardBackground,
-            }}
-          >
-            {getNumeroEspecialBadgeLabel(ne.tipo, ne.color)}
-          </span>
-        )}
-        Sin número configurado — edita este número especial en la sección Sorteos.
+        <NeBadge />
+        Sin número configurado. Edita este número especial en la sección Sorteos.
       </div>
     );
   }
@@ -364,25 +376,12 @@ function NumeroEspecialGanadorRow({
   return (
     <div className="rounded-md bg-background/70 px-4 py-3">
       <div className="flex items-center gap-3 mb-2 flex-wrap">
-        {ne.tipo === "ORO" ? (
-          <span className="text-xs font-bold uppercase text-yellow-400">{ne.tipo}</span>
-        ) : (
-          <span
-            className="rounded-full border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.18em]"
-            style={{
-              color: getNumeroEspecialColorTheme(ne.color).accent,
-              borderColor: getNumeroEspecialColorTheme(ne.color).accentSoft,
-              background: getNumeroEspecialColorTheme(ne.color).cardBackground,
-            }}
-          >
-            {getNumeroEspecialBadgeLabel(ne.tipo, ne.color)}
-          </span>
-        )}
+        <NeBadge />
         <span className="font-mono font-semibold">{String(ne.numero).padStart(4, "0")}</span>
         {ne.nombre_premio && <span className="text-sm text-muted-foreground">{ne.nombre_premio}</span>}
         {ne.es_ganador && (
           <span className="rounded-full bg-green-500/15 px-2 py-0.5 text-xs font-semibold text-green-400">
-            Ganador ✓
+            Ganador declarado
           </span>
         )}
       </div>
@@ -393,22 +392,22 @@ function NumeroEspecialGanadorRow({
         ) : (
           <div className="text-xs text-muted-foreground">
             Boleto: <span className="font-mono">{ne.boleto_ganador_id}</span>
-            {ne.comprador_nombre && <> · {ne.comprador_nombre} ({ne.comprador_cedula})</>}
+            {ne.comprador_nombre && <> | {ne.comprador_nombre} ({ne.comprador_cedula})</>}
           </div>
         )
+      ) : compradorActual ? (
+        // Número ya vendido — mostrar comprador y botón de declarar
+        <div className="space-y-3">
+          <CompradorGanador boleto={compradorActual} compact />
+          {sorteo.estado !== "CERRADO" && (
+            <Button size="sm" disabled={saving} onClick={handleDeclarar} className="h-8 text-xs gap-2">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              {saving ? "Declarando…" : "Declarar ganador"}
+            </Button>
+          )}
+        </div>
       ) : sorteo.estado !== "CERRADO" ? (
-        <form onSubmit={handleSubmit} className="flex gap-2 flex-wrap mt-1">
-          <input
-            required
-            value={boletoId}
-            onChange={(e) => setBoletoId(e.target.value)}
-            placeholder="UUID del boleto ganador"
-            className="flex-1 min-w-0 rounded border border-primary/30 bg-background px-2 py-1.5 text-xs font-mono"
-          />
-          <Button type="submit" size="sm" disabled={saving} className="h-8 text-xs">
-            {saving ? "..." : "Declarar"}
-          </Button>
-        </form>
+        <p className="text-xs text-muted-foreground italic">Número aún no vendido.</p>
       ) : (
         <p className="text-xs text-muted-foreground">Sorteo cerrado sin ganador declarado.</p>
       )}
@@ -437,8 +436,8 @@ function CompradorGanador({ boleto, compact = false }: { boleto: Boleto; compact
       <div className="mt-2 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
         <InfoItem label="Nombre" value={boleto.comprador_nombre} />
         <SensitiveInfoItem label="Cédula" value={boleto.cedula} />
-        <InfoItem label="Correo" value={boleto.email ?? "—"} />
-        <SensitiveInfoItem label="Teléfono" value={boleto.telefono ?? "—"} />
+        <InfoItem label="Correo" value={boleto.email ?? "Sin datos"} />
+        <SensitiveInfoItem label="Teléfono" value={boleto.telefono ?? "Sin datos"} />
         <InfoItem label="Número" value={String(boleto.numero).padStart(4, "0")} />
         <SensitiveInfoItem label="UUID boleto" value={boleto.id} mono />
       </div>
@@ -457,14 +456,14 @@ function InfoItem({ label, value, mono = false }: { label: string; value: string
 
 function SensitiveInfoItem({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
   const [visible, setVisible] = useState(false);
-  const safeValue = value?.trim() ? value : "—";
-  const maskedValue = safeValue === "—" ? safeValue : "*".repeat(Math.max(safeValue.length, 8));
+  const safeValue = value?.trim() ? value : "Sin datos";
+  const maskedValue = safeValue === "Sin datos" ? safeValue : "*".repeat(Math.max(safeValue.length, 8));
 
   return (
     <div className="min-w-0">
       <div className="flex items-center justify-between gap-2">
         <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground/70">{label}</span>
-        {safeValue !== "—" && (
+        {safeValue !== "Sin datos" && (
           <button
             type="button"
             onClick={() => setVisible((current) => !current)}

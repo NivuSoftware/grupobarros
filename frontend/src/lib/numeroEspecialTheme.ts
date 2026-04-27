@@ -23,7 +23,7 @@ export interface NumeroEspecialColorTheme {
 export const NUMERO_ESPECIAL_COLOR_OPTIONS: NumeroEspecialColorTheme[] = [
   {
     key: "ORANGE",
-    adminLabel: "Naranja · Orange Number",
+    adminLabel: "Naranja, Orange Number",
     badgeSingular: "Orange Number",
     badgePlural: "Orange Numbers",
     colorName: "naranja",
@@ -36,7 +36,7 @@ export const NUMERO_ESPECIAL_COLOR_OPTIONS: NumeroEspecialColorTheme[] = [
   },
   {
     key: "BLACK",
-    adminLabel: "Negro · Black Number",
+    adminLabel: "Negro, Black Number",
     badgeSingular: "Black Number",
     badgePlural: "Black Numbers",
     colorName: "negro",
@@ -52,7 +52,7 @@ export const NUMERO_ESPECIAL_COLOR_OPTIONS: NumeroEspecialColorTheme[] = [
   },
   {
     key: "GREEN",
-    adminLabel: "Verde · Green Number",
+    adminLabel: "Verde, Green Number",
     badgeSingular: "Green Number",
     badgePlural: "Green Numbers",
     colorName: "verde",
@@ -65,7 +65,7 @@ export const NUMERO_ESPECIAL_COLOR_OPTIONS: NumeroEspecialColorTheme[] = [
   },
   {
     key: "BLUE",
-    adminLabel: "Azul · Blue Number",
+    adminLabel: "Azul, Blue Number",
     badgeSingular: "Blue Number",
     badgePlural: "Blue Numbers",
     colorName: "azul",
@@ -78,7 +78,7 @@ export const NUMERO_ESPECIAL_COLOR_OPTIONS: NumeroEspecialColorTheme[] = [
   },
   {
     key: "RED",
-    adminLabel: "Rojo · Red Number",
+    adminLabel: "Rojo, Red Number",
     badgeSingular: "Red Number",
     badgePlural: "Red Numbers",
     colorName: "rojo",

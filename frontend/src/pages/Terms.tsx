@@ -82,7 +82,7 @@ const Terms = () => {
               Términos y <span className="text-gold-gradient">Condiciones</span>
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-foreground/70 sm:text-lg">
-              Reglas aplicables para la participación en actividades, sorteos, asignación de números y entrega de premios.
+              Reglas aplicables para la participación en actividades, asignación de números y entrega de premios.
             </p>
           </motion.div>
 

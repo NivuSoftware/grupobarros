@@ -1,71 +1,13 @@
 import { motion } from "framer-motion";
 
-const reveal = {
-  initial: { opacity: 0, y: 32 },
-  whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true, margin: "-80px" },
-};
+const cardClass =
+  "overflow-hidden rounded-[2rem] border border-primary/15 bg-card/60 shadow-[0_0_0_1px_rgba(255,215,0,0.03),0_30px_80px_rgba(0,0,0,0.26)] backdrop-blur-xl";
 
-type GalleryItem =
-  | { type: "video"; src: string; className: string }
-  | { type: "image"; src: string; alt: string; className: string };
-
-const socialGallery: GalleryItem[] = [
-  {
-    type: "video",
-    src: "/images/social/social.MOV",
-    className: "h-[500px] sm:h-[600px]",
-  },
-  {
-    type: "image",
-    src: "/images/social/social4.jpeg",
-    alt: "Ayuda social Grupo Barros",
-    className: "h-[420px] sm:h-[500px]",
-  },
-  {
-    type: "image",
-    src: "/images/social/social5.jpeg",
-    alt: "Presencia comunitaria",
-    className: "h-[560px] sm:h-[660px]",
-  },
-  {
-    type: "image",
-    src: "/images/social/social6.jpeg",
-    alt: "Apoyo directo a la comunidad",
-    className: "h-[440px] sm:h-[540px]",
-  },
-  {
-    type: "image",
-    src: "/images/social/social7.jpeg",
-    alt: "Acompanamiento social",
-    className: "h-[520px] sm:h-[620px]",
-  },
-  {
-    type: "image",
-    src: "/images/social/social8.jpeg",
-    alt: "Solidaridad comunitaria",
-    className: "h-[460px] sm:h-[560px]",
-  },
-  {
-    type: "image",
-    src: "/images/social/social9.jpeg",
-    alt: "Iniciativa solidaria",
-    className: "h-[500px] sm:h-[580px]",
-  },
-  {
-    type: "image",
-    src: "/images/social/social10.jpeg",
-    alt: "Grupo Barros en la comunidad",
-    className: "h-[480px] sm:h-[560px]",
-  },
-];
+const mediaClass = "h-full w-full object-cover rounded-[2rem]";
 
 export const SocialHelp = () => {
   return (
-    <section
-      id="ayuda-social"
-      className="relative overflow-hidden py-24 sm:py-32"
-    >
+    <section id="ayuda-social" className="relative overflow-hidden py-24 sm:py-32">
       <div className="absolute inset-0 bg-gradient-to-b from-background via-secondary/20 to-background" />
       <div className="absolute left-1/2 top-24 h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-gradient-radial-gold opacity-30 blur-3xl" />
 
@@ -82,40 +24,64 @@ export const SocialHelp = () => {
             <span className="text-gold-gradient"> Grupo Barros suma</span>
           </h2>
           <p className="mt-5 text-base leading-relaxed text-foreground/70 sm:text-lg">
-            Tambien creemos en compartir oportunidades fuera del sorteo.
-            Acompanamos personas, fundaciones y causas locales con apoyo
-            directo, articulacion y presencia real en la comunidad.
+            También creemos en compartir oportunidades fuera de las actividades.
+            Acompañamos a personas, fundaciones y causas locales con apoyo
+            directo, articulación y presencia real en la comunidad.
           </p>
         </motion.div>
 
-        <div className="columns-1 gap-5 sm:columns-2 xl:columns-3">
-          {socialGallery.map((item, index) => (
-            <motion.figure
-              key={item.src}
-              {...reveal}
-              transition={{ duration: 0.65, delay: index * 0.08 }}
-              className="mb-5 break-inside-avoid overflow-hidden rounded-[2rem] border border-primary/15 bg-card/60 shadow-[0_0_0_1px_rgba(255,215,0,0.03),0_30px_80px_rgba(0,0,0,0.26)] backdrop-blur-xl"
-            >
-              {item.type === "video" ? (
-                <video
-                  src={item.src}
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  disablePictureInPicture
-                  className={`${item.className} w-full rounded-[2rem] object-cover`}
-                />
-              ) : (
-                <img
-                  src={item.src}
-                  alt={item.alt}
-                  loading="lazy"
-                  className={`${item.className} w-full rounded-[2rem] object-cover`}
-                />
-              )}
-            </motion.figure>
-          ))}
+        {/* Grid de 3 columnas: video | social1 | social9 */}
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+          {/* Video — izquierda */}
+          <motion.figure
+            initial={{ opacity: 0, y: 32 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ duration: 0.65, delay: 0 }}
+            className={`${cardClass} h-[520px] sm:h-[620px]`}
+          >
+            <video
+              src="/images/social/social.MOV"
+              autoPlay
+              loop
+              muted
+              playsInline
+              disablePictureInPicture
+              className={mediaClass}
+            />
+          </motion.figure>
+
+          {/* social1.png — centro */}
+          <motion.figure
+            initial={{ opacity: 0, y: 32 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ duration: 0.65, delay: 0.1 }}
+            className={`${cardClass} h-[520px] sm:h-[620px]`}
+          >
+            <img
+              src="/images/social/social1.png"
+              alt="Ayuda social Grupo Barros"
+              loading="lazy"
+              className={mediaClass}
+            />
+          </motion.figure>
+
+          {/* social9.jpeg — derecha */}
+          <motion.figure
+            initial={{ opacity: 0, y: 32 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ duration: 0.65, delay: 0.2 }}
+            className={`${cardClass} h-[520px] sm:h-[620px]`}
+          >
+            <img
+              src="/images/social/social9.jpeg"
+              alt="Iniciativa solidaria Grupo Barros"
+              loading="lazy"
+              className={mediaClass}
+            />
+          </motion.figure>
         </div>
       </div>
     </section>

@@ -55,7 +55,7 @@ const Admin = () => {
           type="button"
           className="rounded-md p-2 text-muted-foreground hover:bg-secondary md:hidden"
           onClick={() => setMobileOpen(false)}
-          aria-label="Cerrar menu"
+          aria-label="Cerrar menú"
         >
           <X className="h-5 w-5" />
         </button>
@@ -107,7 +107,7 @@ const Admin = () => {
           disabled={loggingOut}
         >
           <LogOut className="h-4 w-4" />
-          {loggingOut ? "Cerrando..." : "Cerrar sesion"}
+          {loggingOut ? "Cerrando…" : "Cerrar sesión"}
         </Button>
       </div>
     </aside>
@@ -123,7 +123,7 @@ const Admin = () => {
             type="button"
             className="rounded-md border border-primary/25 p-2 text-foreground"
             onClick={() => setMobileOpen(true)}
-            aria-label="Abrir menu"
+            aria-label="Abrir menú"
           >
             <Menu className="h-5 w-5" />
           </button>

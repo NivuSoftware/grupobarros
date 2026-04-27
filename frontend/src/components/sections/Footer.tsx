@@ -1,6 +1,21 @@
 import { Logo } from "../Logo";
-import { Instagram, Facebook, Mail, Shield } from "lucide-react";
+import { Instagram, Mail } from "lucide-react";
 import { Link } from "react-router-dom";
+
+const socialLinks = [
+  {
+    icon: Instagram,
+    label: "Instagram",
+    href: "https://www.instagram.com/grupobarros1?igsh=dGF0enRldGlwcnkx&utm_source=qr",
+    external: true,
+  },
+  {
+    icon: Mail,
+    label: "Correo",
+    href: "mailto:grupobarros2026@outlook.com",
+    external: false,
+  },
+];
 
 export const Footer = () => {
   return (
@@ -14,19 +29,17 @@ export const Footer = () => {
             <div className="relative">
               <Logo className="justify-center md:justify-start" />
               <p className="mx-auto mt-5 max-w-xl text-sm leading-relaxed text-muted-foreground md:mx-0">
-                Plataforma exclusiva de rifas premium. Sorteos transparentes, ganadores reales y experiencias de lujo
+                Plataforma exclusiva de actividades premium. Actividades transparentes, ganadores reales y experiencias de lujo
                 accesibles para todos.
               </p>
 
               <div className="mt-6 flex justify-center gap-3 md:justify-start">
-                {[
-                  { icon: Instagram, label: "Instagram" },
-                  { icon: Facebook, label: "Facebook" },
-                  { icon: Mail, label: "Email" },
-                ].map(({ icon: Icon, label }) => (
+                {socialLinks.map(({ icon: Icon, label, href, external }) => (
                   <a
                     key={label}
-                    href="#"
+                    href={href}
+                    target={external ? "_blank" : undefined}
+                    rel={external ? "noreferrer" : undefined}
                     aria-label={label}
                     className="flex h-11 w-11 items-center justify-center rounded-full border border-primary/20 bg-secondary/70 text-foreground/70 transition-all hover:-translate-y-0.5 hover:border-primary hover:text-primary hover:shadow-gold"
                   >
@@ -47,6 +60,7 @@ export const Footer = () => {
               {/* Enlace a ganadores oculto temporalmente */}
               {/* <li><a href="/#ganadores" className="transition-colors hover:text-primary">Ganadores</a></li> */}
               <li><a href="/#como-funciona" className="transition-colors hover:text-primary">Cómo funciona</a></li>
+              <li><Link to="/como-comprar" className="transition-colors hover:text-primary">¿Cómo comprar?</Link></li>
               <li><Link to="/terminos-y-condiciones" className="transition-colors hover:text-primary">Términos y Condiciones</Link></li>
             </ul>
           </div>
@@ -56,7 +70,7 @@ export const Footer = () => {
           <div className="flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-6">
             <p>© {new Date().getFullYear()} Grupo Barros. Todos los derechos reservados.</p>
             <div className="hidden h-3 w-px bg-primary/20 sm:block" />
-            <span>Rifas premium con experiencia segura y transparente.</span>
+            <span>Actividades premium con experiencia segura y transparente.</span>
           </div>
         </div>
       </div>

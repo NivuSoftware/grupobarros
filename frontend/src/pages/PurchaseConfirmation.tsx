@@ -237,7 +237,7 @@ const PurchaseConfirmation = () => {
           )}
 
           {loadingRecovery ? (
-            <p className="mt-5 text-foreground/60">Verificando tu compra...</p>
+            <p className="mt-5 text-foreground/60">Verificando tu compra…</p>
           ) : confirmation ? (
             isTransferenciaPendiente ? (
               <>

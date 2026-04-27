@@ -27,7 +27,7 @@ export const StickyBuy = () => {
           className="flex items-center justify-center gap-2 w-full px-6 py-4 rounded-full bg-gold-gradient text-primary-foreground font-bold tracking-wider shadow-gold-strong active:scale-95 transition-transform glow-pulse"
         >
           <ShoppingBag className="w-5 h-5" />
-          COMPRAR AHORA — DESDE $6
+          COMPRAR AHORA DESDE $6
         </a>
       </div>
     </div>

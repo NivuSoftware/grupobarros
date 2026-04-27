@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { LockKeyhole, Mail } from "lucide-react";
+import { Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ const Login = () => {
   const [correo, setCorreo] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname || "/admin";
 
   useEffect(() => {
@@ -29,11 +30,11 @@ const Login = () => {
 
     try {
       await login(correo, password);
-      notifySuccess("Sesion iniciada correctamente");
+      notifySuccess("Sesión iniciada correctamente");
       setPassword("");
       navigate(from, { replace: true });
     } catch (error) {
-      notifyError(getErrorMessage(error, "No se pudo iniciar sesion."));
+      notifyError(getErrorMessage(error, "No se pudo iniciar sesión."));
     } finally {
       setLoading(false);
     }
@@ -76,20 +77,29 @@ const Login = () => {
                 <LockKeyhole className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   id="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  className="h-11 pl-10"
+                  className="h-11 pl-10 pr-10"
                   placeholder="Tu contraseña segura"
                   minLength={12}
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  tabIndex={-1}
+                  aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
             </div>
 
             <Button type="submit" className="h-11 w-full font-semibold" disabled={loading}>
-              {loading ? "Validando..." : "Iniciar sesion"}
+              {loading ? "Validando…" : "Iniciar sesión"}
             </Button>
           </form>
         </div>

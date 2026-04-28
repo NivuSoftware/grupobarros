@@ -5,7 +5,7 @@ import { GoldNumbers } from "@/components/sections/GoldNumbers";
 import { OrangeNumber } from "@/components/sections/OrangeNumber";
 import { HowItWorks } from "@/components/sections/HowItWorks";
 import { Packs } from "@/components/sections/Packs";
-// import { Winners } from "@/components/sections/Winners";
+import { Winners } from "@/components/sections/Winners";
 import { SocialHelp } from "@/components/sections/SocialHelp";
 import { FinalCTA } from "@/components/sections/FinalCTA";
 import { Footer } from "@/components/sections/Footer";
@@ -23,8 +23,7 @@ const Index = () => {
       {hasSorteo && <OrangeNumber sorteoData={data} loading={loading} />}
       <HowItWorks />
       {hasSorteo && <Packs />}
-      {/* Sección de ganadores oculta temporalmente */}
-      {/* <Winners /> */}
+      <Winners />
       <SocialHelp />
       <FinalCTA />
       <Footer />
